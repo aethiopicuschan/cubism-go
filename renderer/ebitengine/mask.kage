@@ -1,0 +1,9 @@
+//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, col vec4) vec4 {
+    maskBuffer := imageSrc0At(srcPos)
+    frameBuffer := imageSrc1At(srcPos)
+    return vec4(frameBuffer.r, frameBuffer.g, frameBuffer.b, frameBuffer.a * maskBuffer.a)
+}

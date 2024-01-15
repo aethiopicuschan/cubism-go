@@ -1,0 +1,8 @@
+repos:
+  - repo: https://github.com/aethiopicuschan/pre-commit-golang
+    rev: c17f835cf9f04b8b5ed1c1f7757cedc6728d8a21
+    hooks:
+      - id: go-fmt
+      - id: go-imports
+      - id: go-critic
+      - id: go-mod-tidy
