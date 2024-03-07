@@ -1,6 +1,8 @@
 package cubism
 
 import (
+	"fmt"
+
 	"github.com/aethiopicuschan/cubism-go/internal/core"
 	"github.com/aethiopicuschan/cubism-go/internal/core/drawable"
 	"github.com/aethiopicuschan/cubism-go/internal/core/moc"
@@ -53,6 +55,18 @@ func (m *Model) GetSortedIndices() []int {
 // Drawablesを取得する
 func (m *Model) GetDrawables() []Drawable {
 	return m.drawables
+}
+
+// 指定したIDのDrawableを取得する
+func (m *Model) GetDrawable(id string) (d Drawable, err error) {
+	for _, drawable := range m.drawables {
+		if drawable.Id == id {
+			d = drawable
+			return
+		}
+	}
+	err = fmt.Errorf("Drawable not found: %s", id)
+	return
 }
 
 // モーションのグループ名の一覧を取得する

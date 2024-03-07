@@ -2,6 +2,7 @@ package renderer
 
 import (
 	_ "embed"
+	"image"
 	"image/color"
 
 	"github.com/aethiopicuschan/cubism-go"
@@ -20,6 +21,7 @@ type Renderer struct {
 	drawables       []cubism.Drawable
 	vertices        [][]ebiten.Vertex
 	maskShader      *ebiten.Shader
+	final           image.Rectangle
 }
 
 func NewRenderer(model *cubism.Model) (r *Renderer, err error) {
@@ -111,11 +113,19 @@ func (r *Renderer) Draw(screen *ebiten.Image) {
 		}
 	}
 	options := &ebiten.DrawImageOptions{}
-	// 中央に表示する
+	// 座標やスケール関連
 	options.GeoM.Scale(float64(height)/float64(width), 1)
 	options.GeoM.Scale(float64(screen.Bounds().Dx())/float64(r.surface.Bounds().Dx()), float64(screen.Bounds().Dy())/float64(r.surface.Bounds().Dy()))
 	finalWidth := float64(screen.Bounds().Dx()) * (float64(height) / float64(width))
-	options.GeoM.Translate(float64(screen.Bounds().Dx())/2-finalWidth/2, 0)
+	x := float64(screen.Bounds().Dx())/2 - finalWidth/2
+	options.GeoM.Translate(x, 0)
+	r.final = image.Rect(int(x), 0, int(finalWidth), screen.Bounds().Dy())
+	// アルファ値
 	options.ColorScale.SetA(r.model.Opacity)
+	// 描画
 	screen.DrawImage(r.surface, options)
+}
+
+func (r *Renderer) GetModel() *cubism.Model {
+	return r.model
 }

@@ -23,9 +23,9 @@ type Game struct {
 	renderer *renderer.Renderer
 }
 
-func (g *Game) Update() error {
+func (g *Game) Update() (err error) {
 	g.renderer.Update()
-	return nil
+	return
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {

@@ -3,6 +3,7 @@ package cubism
 import "github.com/aethiopicuschan/cubism-go/internal/core/drawable"
 
 type Drawable struct {
+	Id              string
 	Texture         string
 	VertexPositions []drawable.Vector2
 	VertexUvs       []drawable.Vector2

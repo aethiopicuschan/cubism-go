@@ -64,6 +64,7 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 	ds := c.core.GetDrawables(m.moc.ModelPtr)
 	for _, d := range ds {
 		m.drawables = append(m.drawables, Drawable{
+			Id:              d.Id,
 			Texture:         m.textures[d.Texture],
 			VertexPositions: d.VertexPositions,
 			VertexUvs:       d.VertexUvs,

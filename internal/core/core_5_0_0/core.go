@@ -32,6 +32,7 @@ type Core struct {
 	csmGetPartIds                 func(uintptr) uintptr
 	csmGetPartOpacities           func(uintptr) uintptr
 	csmGetDrawableCount           func(uintptr) int
+	csmGetDrawableIds             func(uintptr) uintptr
 	csmGetDrawableConstantFlags   func(uintptr) uintptr
 	csmGetDrawableDynamicFlags    func(uintptr) uintptr
 	csmGetDrawableTextureIndices  func(uintptr) uintptr
@@ -68,6 +69,7 @@ func NewCore(lib uintptr) (c *Core, err error) {
 	purego.RegisterLibFunc(&c.csmGetPartIds, lib, "csmGetPartIds")
 	purego.RegisterLibFunc(&c.csmGetPartOpacities, lib, "csmGetPartOpacities")
 	purego.RegisterLibFunc(&c.csmGetDrawableCount, lib, "csmGetDrawableCount")
+	purego.RegisterLibFunc(&c.csmGetDrawableIds, lib, "csmGetDrawableIds")
 	purego.RegisterLibFunc(&c.csmGetDrawableConstantFlags, lib, "csmGetDrawableConstantFlags")
 	purego.RegisterLibFunc(&c.csmGetDrawableDynamicFlags, lib, "csmGetDrawableDynamicFlags")
 	purego.RegisterLibFunc(&c.csmGetDrawableTextureIndices, lib, "csmGetDrawableTextureIndices")
@@ -217,17 +219,27 @@ func (c *Core) GetDrawables(modelPtr uintptr) (ds []drawable.Drawable) {
 		masks = append(masks, unsafe.Slice(*(**int32)(unsafe.Pointer(maskPtr + uintptr(i)*unsafe.Sizeof(uintptr(0)))), int(maskCount)))
 	}
 
+	// ID
+	idsPtr := c.csmGetDrawableIds(modelPtr)
+	ids := make([]string, 0)
+	for i := 0; i < count; i++ {
+		ptr := *(**byte)(unsafe.Pointer(idsPtr + uintptr(i)*unsafe.Sizeof(uintptr(0))))
+		ids = append(ids, strings.GoString(uintptr(unsafe.Pointer(ptr))))
+	}
+
 	// 構造体に詰める
 	for i := 0; i < count; i++ {
-		d := drawable.Drawable{}
-		d.Texture = textureIndices[i]
-		d.VertexPositions = vertexPositions[i]
-		d.VertexUvs = vertexUvs[i]
-		d.VertexIndices = indices[i]
-		d.ConstantFlag = constantFlags[i]
-		d.DynamicFlag = dynamicFlags[i]
-		d.Opacity = opacities[i]
-		d.Masks = masks[i]
+		d := drawable.Drawable{
+			Id:              ids[i],
+			Texture:         textureIndices[i],
+			VertexPositions: vertexPositions[i],
+			VertexUvs:       vertexUvs[i],
+			VertexIndices:   indices[i],
+			ConstantFlag:    constantFlags[i],
+			DynamicFlag:     dynamicFlags[i],
+			Opacity:         opacities[i],
+			Masks:           masks[i],
+		}
 		ds = append(ds, d)
 	}
 	return

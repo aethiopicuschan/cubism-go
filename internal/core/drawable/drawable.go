@@ -1,6 +1,7 @@
 package drawable
 
 type Drawable struct {
+	Id              string
 	Texture         int32
 	VertexPositions []Vector2
 	VertexUvs       []Vector2
