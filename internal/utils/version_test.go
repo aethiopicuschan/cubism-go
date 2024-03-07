@@ -7,7 +7,7 @@ import (
 	"github.com/aethiopicuschan/cubism-go/internal/utils"
 )
 
-func assert(exp string, got string) (err error) {
+func assertString(exp string, got string) (err error) {
 	if exp != got {
 		err = fmt.Errorf("Expected %s, got %s", exp, got)
 	}
@@ -35,7 +35,7 @@ func TestParseVersion(t *testing.T) {
 
 	for _, testcase := range testcases {
 		got := utils.ParseVersion(testcase.src)
-		if err := assert(testcase.expect, got); err != nil {
+		if err := assertString(testcase.expect, got); err != nil {
 			t.Error(err)
 		}
 	}

@@ -25,6 +25,31 @@ type Game struct {
 
 func (g *Game) Update() (err error) {
 	g.renderer.Update()
+	x, y := ebiten.CursorPosition()
+	if x < 0 || y < 0 || x > g.ow || y > g.oh {
+		return
+	}
+	if !ebiten.IsFocused() {
+		return
+	}
+	hitareas := g.renderer.GetModel().GetHitAreas()
+	hitted := false
+	for _, hitarea := range hitareas {
+		hit, err := g.renderer.IsHit(x, y, hitarea.Id)
+		if err != nil {
+			return err
+		}
+		if hit {
+			hitted = true
+		}
+	}
+	if hitted {
+		ebiten.SetCursorShape(ebiten.CursorShapePointer)
+	} else {
+		if ebiten.CursorShape() == ebiten.CursorShapePointer {
+			ebiten.SetCursorShape(ebiten.CursorShapeDefault)
+		}
+	}
 	return
 }
 
@@ -48,6 +73,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	model.PlayMotion("Idle", 0)
 	model.EnableAutoBlink()
 	renderer, err := renderer.NewRenderer(model)
 	if err != nil {

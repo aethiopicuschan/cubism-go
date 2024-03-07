@@ -16,24 +16,28 @@ type Model struct {
 	// 内部的に必要なもの
 	motionManager *motion.MotionManager
 	blinkManager  *blink.BlinkManager
-	// 外に見えていいもの
-	Version int
-	Opacity float32
 	// Getterで取得のみ可能なもの
+	version       int
 	core          core.Core
 	moc           moc.Moc
+	opacity       float32
 	textures      []string
 	motions       map[string][]*motion.Motion
 	sortedIndices []int
 	drawables     []Drawable
+	hitAreas      []hitArea
 	// 外に見せるか未定のもの
 	groups   []group
-	hitAreas []hitArea
 	physics  physicsJson
 	pose     poseJson
 	cdi      cdiJson
 	exps     []expJson
 	userdata userdataJson
+}
+
+// バージョンを取得する
+func (m *Model) GetVersion() int {
+	return m.version
 }
 
 // コアを取得する
@@ -44,6 +48,11 @@ func (m *Model) GetCore() core.Core {
 // Mocを取得する
 func (m *Model) GetMoc() moc.Moc {
 	return m.moc
+}
+
+// 透明度を取得する
+func (m *Model) GetOpacity() float32 {
+	return m.opacity
 }
 
 // テクスチャ画像のパスを取得する
@@ -71,6 +80,11 @@ func (m *Model) GetDrawable(id string) (d Drawable, err error) {
 	}
 	err = fmt.Errorf("Drawable not found: %s", id)
 	return
+}
+
+// ヒットエリアの一覧を取得する
+func (m *Model) GetHitAreas() []hitArea {
+	return m.hitAreas
 }
 
 // パラメータの一覧を取得する

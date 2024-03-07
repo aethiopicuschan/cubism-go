@@ -6,6 +6,7 @@ import (
 	"image/color"
 
 	"github.com/aethiopicuschan/cubism-go"
+	"github.com/aethiopicuschan/cubism-go/internal/utils"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/colorm"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -24,6 +25,7 @@ type Renderer struct {
 	final           image.Rectangle
 }
 
+// 新しいレンダラを作成する
 func NewRenderer(model *cubism.Model) (r *Renderer, err error) {
 	modelPtr := model.GetMoc().ModelPtr
 	core := model.GetCore()
@@ -52,6 +54,7 @@ func NewRenderer(model *cubism.Model) (r *Renderer, err error) {
 	return
 }
 
+// レンダラを更新する
 func (r *Renderer) Update() error {
 	r.model.Update(1.0 / float64(ebiten.TPS()))
 	r.drawables = r.model.GetDrawables()
@@ -116,6 +119,29 @@ func (r *Renderer) Draw(screen *ebiten.Image, opts ...func(*DrawOption)) {
 	for _, o := range opts {
 		o(opt)
 	}
+
+	last_options := &ebiten.DrawImageOptions{}
+	// まず、画面サイズに合わせる
+	screenWidth, screenHeight := float64(screen.Bounds().Dx()), float64(screen.Bounds().Dy())
+	surfaceWidth, surfaceHeight := float64(r.surface.Bounds().Dx()), float64(r.surface.Bounds().Dy())
+	last_options.GeoM.Scale(screenHeight/screenWidth, 1)
+	last_options.GeoM.Scale(screenWidth/surfaceWidth, screenHeight/surfaceHeight)
+	// スケールオプションを適用
+	last_options.GeoM.Scale(opt.scale, opt.scale)
+	// 横軸を中央に合わせる
+	width := screenWidth * (screenHeight / screenWidth) * opt.scale
+	height := screenHeight * opt.scale
+	x := screenWidth/2 - width/2 + opt.x
+	y := screenHeight/2 - height/2 + opt.y
+	last_options.GeoM.Translate(x, y)
+	r.final = image.Rect(int(x), int(y), int(x+width), int(y+height))
+	// アルファ値
+	last_options.ColorScale.SetA(r.model.GetOpacity())
+
+	if opt.hidden {
+		return
+	}
+
 	screen.Fill(color.White)
 	r.surface.Fill(color.RGBA{0, 255, 0, 255})
 	sortedIndices := r.model.GetSortedIndices()
@@ -149,29 +175,58 @@ func (r *Renderer) Draw(screen *ebiten.Image, opts ...func(*DrawOption)) {
 			colorm.DrawTriangles(r.surface, vertices, d.VertexIndices, r.textureMap[d.Texture], colorM, options)
 		}
 	}
-	options := &ebiten.DrawImageOptions{}
-	// まず、画面サイズに合わせる
-	screenWidth, screenHeight := float64(screen.Bounds().Dx()), float64(screen.Bounds().Dy())
-	surfaceWidth, surfaceHeight := float64(r.surface.Bounds().Dx()), float64(r.surface.Bounds().Dy())
-	options.GeoM.Scale(screenHeight/screenWidth, 1)
-	options.GeoM.Scale(screenWidth/surfaceWidth, screenHeight/surfaceHeight)
-	// スケールオプションを適用
-	options.GeoM.Scale(opt.scale, opt.scale)
-	// 横軸を中央に合わせる
-	width := screenWidth * (screenHeight / screenWidth) * opt.scale
-	height := screenHeight * opt.scale
-	x := screenWidth/2 - width/2
-	y := screenHeight/2 - height/2
-	options.GeoM.Translate(x+opt.x, y+opt.y)
 
-	// アルファ値
-	options.ColorScale.SetA(r.model.Opacity)
 	// 描画
-	if !opt.hidden {
-		screen.DrawImage(r.surface, options)
-	}
+	screen.DrawImage(r.surface, last_options)
 }
 
+// レンダラに設定されているモデルを取得する
 func (r *Renderer) GetModel() *cubism.Model {
 	return r.model
+}
+
+// 当たり判定を行う
+func (r *Renderer) IsHit(x, y int, id string) (hit bool, err error) {
+	// そもそも範囲外
+	if r.final.Min.X > x || x > r.final.Max.X || r.final.Min.Y > y || y > r.final.Max.Y {
+		return
+	}
+
+	// Drawableを取得
+	d, err := r.model.GetDrawable(id)
+	if err != nil {
+		return
+	}
+
+	// 矩形の範囲
+	var left, right, top, bottom float32
+	left = float32(r.surface.Bounds().Dx())
+	top = float32(r.surface.Bounds().Dy())
+
+	// Drawableの範囲を表す矩形を取得
+	for i := 0; i < len(d.VertexPositions); i++ {
+		v := d.VertexPositions[i]
+		if v.X < left {
+			left = v.X
+		}
+		if v.X > right {
+			right = v.X
+		}
+		if v.Y < top {
+			top = v.Y
+		}
+		if v.Y > bottom {
+			bottom = v.Y
+		}
+	}
+
+	// ローカル座標に変換
+	localX := utils.Normalize(float32(x), float32(r.final.Min.X), float32(r.final.Max.X))
+	localY := utils.Normalize(float32(y), float32(r.final.Min.Y), float32(r.final.Max.Y)) * -1
+
+	if left <= localX && localX <= right && top <= localY && localY <= bottom {
+		hit = true
+	}
+
+	return
 }

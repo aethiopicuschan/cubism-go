@@ -22,7 +22,7 @@ func NewCubism(lib string) (c Cubism, err error) {
 func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 	m = &Model{
 		core:    c.core,
-		Opacity: 1.0,
+		opacity: 1.0,
 	}
 
 	// 絶対パスを取得
@@ -45,7 +45,7 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 	}
 
 	// バージョン情報
-	m.Version = mj.Version
+	m.version = mj.Version
 	// テクスチャ画像のパスを絶対パスにする
 	m.textures = mj.FileReferences.Textures
 	for i := range m.textures {
