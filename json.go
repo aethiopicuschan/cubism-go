@@ -236,11 +236,11 @@ func (m *motionJson) toMotion(fp string, fadein, fadeout float64, sound string) 
 				c.Segments = append(c.Segments, motion.Segment{
 					Points: []motion.Point{
 						lastPoint,
-						motion.Point{
+						{
 							Time:  t0,
 							Value: v0,
 						},
-						motion.Point{
+						{
 							Time:  t1,
 							Value: v1,
 						},
