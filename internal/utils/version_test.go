@@ -2,15 +2,10 @@ package utils_test
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/aethiopicuschan/cubism-go/internal/utils"
 )
-
-func createVersion(major, minor, patch int) uint32 {
-	return (uint32(major) << 24) | (uint32(minor) << 16) | uint32(patch)
-}
 
 func assert(exp string, got string) (err error) {
 	if exp != got {
@@ -20,7 +15,6 @@ func assert(exp string, got string) (err error) {
 }
 
 func TestParseVersion(t *testing.T) {
-	log.Println(createVersion(2, 3, 4))
 	testcases := []struct {
 		src    uint32
 		expect string
