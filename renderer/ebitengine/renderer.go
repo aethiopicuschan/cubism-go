@@ -76,9 +76,46 @@ func (r *Renderer) Update() error {
 	return nil
 }
 
-func (r *Renderer) Draw(screen *ebiten.Image) {
-	width := screen.Bounds().Dx()
-	height := screen.Bounds().Dy()
+// 描画オプション
+type DrawOption struct {
+	hidden bool
+	scale  float64
+	x, y   float64
+}
+
+// 最終的なscreenに対する描画を行わないようにする
+func WithHidden() func(*DrawOption) {
+	return func(o *DrawOption) {
+		o.hidden = true
+	}
+}
+
+// スケールを設定する
+func WithScale(scale float64) func(*DrawOption) {
+	return func(o *DrawOption) {
+		o.scale = scale
+	}
+}
+
+// 位置を設定する
+func WithPosition(x, y float64) func(*DrawOption) {
+	return func(o *DrawOption) {
+		o.x = x
+		o.y = y
+	}
+}
+
+// 描画する
+func (r *Renderer) Draw(screen *ebiten.Image, opts ...func(*DrawOption)) {
+	opt := &DrawOption{
+		hidden: false,
+		scale:  1,
+		x:      0,
+		y:      0,
+	}
+	for _, o := range opts {
+		o(opt)
+	}
 	screen.Fill(color.White)
 	r.surface.Fill(color.RGBA{0, 255, 0, 255})
 	sortedIndices := r.model.GetSortedIndices()
@@ -113,17 +150,26 @@ func (r *Renderer) Draw(screen *ebiten.Image) {
 		}
 	}
 	options := &ebiten.DrawImageOptions{}
-	// 座標やスケール関連
-	options.GeoM.Scale(float64(height)/float64(width), 1)
-	options.GeoM.Scale(float64(screen.Bounds().Dx())/float64(r.surface.Bounds().Dx()), float64(screen.Bounds().Dy())/float64(r.surface.Bounds().Dy()))
-	finalWidth := float64(screen.Bounds().Dx()) * (float64(height) / float64(width))
-	x := float64(screen.Bounds().Dx())/2 - finalWidth/2
-	options.GeoM.Translate(x, 0)
-	r.final = image.Rect(int(x), 0, int(finalWidth), screen.Bounds().Dy())
+	// まず、画面サイズに合わせる
+	screenWidth, screenHeight := float64(screen.Bounds().Dx()), float64(screen.Bounds().Dy())
+	surfaceWidth, surfaceHeight := float64(r.surface.Bounds().Dx()), float64(r.surface.Bounds().Dy())
+	options.GeoM.Scale(screenHeight/screenWidth, 1)
+	options.GeoM.Scale(screenWidth/surfaceWidth, screenHeight/surfaceHeight)
+	// スケールオプションを適用
+	options.GeoM.Scale(opt.scale, opt.scale)
+	// 横軸を中央に合わせる
+	width := screenWidth * (screenHeight / screenWidth) * opt.scale
+	height := screenHeight * opt.scale
+	x := screenWidth/2 - width/2
+	y := screenHeight/2 - height/2
+	options.GeoM.Translate(x+opt.x, y+opt.y)
+
 	// アルファ値
 	options.ColorScale.SetA(r.model.Opacity)
 	// 描画
-	screen.DrawImage(r.surface, options)
+	if !opt.hidden {
+		screen.DrawImage(r.surface, options)
+	}
 }
 
 func (r *Renderer) GetModel() *cubism.Model {
