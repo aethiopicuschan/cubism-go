@@ -16,13 +16,13 @@ var maskShaderSrc []byte
 type Renderer struct {
 	fb, mb, surface *ebiten.Image
 	textureMap      map[string]*ebiten.Image
-	model           cubism.Model
+	model           *cubism.Model
 	drawables       []cubism.Drawable
 	vertices        [][]ebiten.Vertex
 	maskShader      *ebiten.Shader
 }
 
-func NewRenderer(model cubism.Model) (r *Renderer, err error) {
+func NewRenderer(model *cubism.Model) (r *Renderer, err error) {
 	modelPtr := model.GetMoc().ModelPtr
 	core := model.GetCore()
 	size, _, _ := core.GetCanvasInfo(modelPtr)

@@ -48,8 +48,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	model.PlayMotion("Idle", 0)
 	renderer, err := renderer.NewRenderer(model)
+	model.PlayMotion("Idle", 0)
 	if err != nil {
 		log.Fatal(err)
 	}

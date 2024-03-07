@@ -19,11 +19,11 @@ func NewCubism(lib string) (c Cubism, err error) {
 }
 
 // model3.jsonからモデルを読み込む
-func (c *Cubism) LoadModel(path string) (m Model, err error) {
-	// コアを渡しておく
-	m.core = c.core
-	// デフォルト値を設定
-	m.Opacity = 1.0
+func (c *Cubism) LoadModel(path string) (m *Model, err error) {
+	m = &Model{
+		core:    c.core,
+		Opacity: 1.0,
+	}
 
 	// 絶対パスを取得
 	absPath, err := filepath.Abs(path)
