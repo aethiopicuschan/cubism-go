@@ -69,14 +69,6 @@ func (m *Model) GetDrawable(id string) (d Drawable, err error) {
 	return
 }
 
-// モーションのグループ名の一覧を取得する
-func (m *Model) GetMotionGroupNames() (names []string) {
-	for k := range m.motions {
-		names = append(names, k)
-	}
-	return
-}
-
 // パラメータの一覧を取得する
 func (m *Model) GetParameters() []parameter.Parameter {
 	return m.core.GetParameters(m.moc.ModelPtr)
@@ -90,6 +82,14 @@ func (m *Model) GetParameterValue(id string) float32 {
 // パラメータの値を設定する
 func (m *Model) SetParameterValue(id string, value float32) {
 	m.core.SetParameterValue(m.moc.ModelPtr, id, value)
+}
+
+// モーションのグループ名の一覧を取得する
+func (m *Model) GetMotionGroupNames() (names []string) {
+	for k := range m.motions {
+		names = append(names, k)
+	}
+	return
 }
 
 // グループに含まれるモーションの一覧を取得する
