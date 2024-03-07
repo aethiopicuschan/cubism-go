@@ -52,7 +52,8 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 		m.textures[i] = filepath.Join(dir, m.textures[i])
 	}
 
-	// TODO Groups HitAreas
+	m.groups = mj.Groups
+	m.hitAreas = mj.HitAreas
 
 	// moc3ファイルを読み込む
 	moc3Path := filepath.Join(dir, mj.FileReferences.Moc)

@@ -3,6 +3,7 @@ package cubism
 import (
 	"fmt"
 
+	"github.com/aethiopicuschan/cubism-go/internal/blink"
 	"github.com/aethiopicuschan/cubism-go/internal/core"
 	"github.com/aethiopicuschan/cubism-go/internal/core/drawable"
 	"github.com/aethiopicuschan/cubism-go/internal/core/moc"
@@ -14,6 +15,7 @@ import (
 type Model struct {
 	// 内部的に必要なもの
 	motionManager *motion.MotionManager
+	blinkManager  *blink.BlinkManager
 	// 外に見えていいもの
 	Version int
 	Opacity float32
@@ -25,6 +27,8 @@ type Model struct {
 	sortedIndices []int
 	drawables     []Drawable
 	// 外に見せるか未定のもの
+	groups   []group
+	hitAreas []hitArea
 	physics  physicsJson
 	pose     poseJson
 	cdi      cdiJson
@@ -104,10 +108,28 @@ func (m *Model) PlayMotion(groupName string, index int) {
 	})
 }
 
+// 自動まばたきを有効にする
+func (m *Model) EnableAutoBlink() {
+	for _, group := range m.groups {
+		if group.Name == "EyeBlink" {
+			m.blinkManager = blink.NewBlinkManager(m.core, m.moc.ModelPtr, group.Ids)
+			return
+		}
+	}
+}
+
+// 自動まばたきを無効にする
+func (m *Model) DisableAutoBlink() {
+	m.blinkManager = nil
+}
+
 // モデルを更新する
 func (m *Model) Update(delta float64) {
 	if m.motionManager != nil {
 		m.motionManager.Update(delta)
+	}
+	if m.blinkManager != nil {
+		m.blinkManager.Update(delta)
 	}
 	m.core.Update(m.moc.ModelPtr)
 
