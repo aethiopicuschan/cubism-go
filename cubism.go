@@ -130,9 +130,9 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 	}
 
 	// モーションの設定を読み込む
-	m.motions = map[string][]motion.Motion{}
+	m.motions = map[string][]*motion.Motion{}
 	for name, motions := range mj.FileReferences.Motions {
-		m.motions[name] = []motion.Motion{}
+		m.motions[name] = []*motion.Motion{}
 		for _, motion := range motions {
 			motionPath := filepath.Join(dir, motion.File)
 			buf, err = os.ReadFile(motionPath)
@@ -144,7 +144,15 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 				return
 			}
 			fp := filepath.Base(motion.File)
-			m.motions[name] = append(m.motions[name], mtnJson.toMotion(fp, motion.FadeInTime, motion.FadeOutTime, motion.Sound))
+			motion := mtnJson.toMotion(fp, motion.FadeInTime, motion.FadeOutTime, motion.Sound)
+			if motion.Sound != "" {
+				soundPath := filepath.Join(dir, motion.Sound)
+				motion.LoadedSound, err = os.ReadFile(soundPath)
+				if err != nil {
+					return
+				}
+			}
+			m.motions[name] = append(m.motions[name], motion)
 		}
 	}
 

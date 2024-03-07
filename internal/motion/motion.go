@@ -37,6 +37,7 @@ type Motion struct {
 	FadeInTime  float64
 	FadeOutTime float64
 	Sound       string
+	LoadedSound []byte
 	Meta        Meta
 	Curves      []Curve
 }

@@ -21,7 +21,7 @@ type Model struct {
 	core          core.Core
 	moc           moc.Moc
 	textures      []string
-	motions       map[string][]motion.Motion
+	motions       map[string][]*motion.Motion
 	sortedIndices []int
 	drawables     []Drawable
 	// 外に見せるか未定のもの
@@ -93,7 +93,7 @@ func (m *Model) GetMotionGroupNames() (names []string) {
 }
 
 // グループに含まれるモーションの一覧を取得する
-func (m *Model) GetMotions(groupName string) []motion.Motion {
+func (m *Model) GetMotions(groupName string) []*motion.Motion {
 	return m.motions[groupName]
 }
 

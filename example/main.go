@@ -10,6 +10,7 @@ import (
 	renderer "github.com/aethiopicuschan/cubism-go/renderer/ebitengine"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -24,6 +25,9 @@ type Game struct {
 }
 
 func (g *Game) Update() (err error) {
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		g.renderer.GetModel().PlayMotion("TapBody", 0)
+	}
 	g.renderer.Update()
 	return
 }
@@ -49,7 +53,6 @@ func main() {
 		log.Fatal(err)
 	}
 	renderer, err := renderer.NewRenderer(model)
-	model.PlayMotion("Idle", 0)
 	if err != nil {
 		log.Fatal(err)
 	}

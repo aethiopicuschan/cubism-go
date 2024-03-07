@@ -173,7 +173,8 @@ type motionJson struct {
 }
 
 // motion3.jsonをMotionに変換する
-func (m *motionJson) toMotion(fp string, fadein, fadeout float64, sound string) (mtn motion.Motion) {
+func (m *motionJson) toMotion(fp string, fadein, fadeout float64, sound string) (mtn *motion.Motion) {
+	mtn = &motion.Motion{}
 	mtn.File = fp
 	mtn.FadeInTime = fadein
 	mtn.FadeOutTime = fadeout

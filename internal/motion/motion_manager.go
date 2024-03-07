@@ -1,12 +1,15 @@
 package motion
 
 import (
+	"log"
+
 	"github.com/aethiopicuschan/cubism-go/internal/core"
+	"github.com/aethiopicuschan/cubism-go/internal/sound"
 )
 
 type MotionManager struct {
 	core            core.Core
-	motion          Motion
+	motion          *Motion
 	modelPtr        uintptr
 	currentTime     float64
 	weight          float64
@@ -15,7 +18,7 @@ type MotionManager struct {
 	savedParameters map[string]float32
 }
 
-func NewMotionManager(core core.Core, modelPtr uintptr, motion Motion, onFinished func()) *MotionManager {
+func NewMotionManager(core core.Core, modelPtr uintptr, motion *Motion, onFinished func()) *MotionManager {
 	return &MotionManager{
 		core:            core,
 		motion:          motion,
@@ -118,12 +121,24 @@ func (m *MotionManager) loadParameters() {
 	}
 }
 
-func (m *MotionManager) Update(delta float64) {
+func (m *MotionManager) Update(delta float64) (err error) {
 	if m.finished {
 		return
 	}
+	if m.currentTime == 0.0 {
+		if m.motion.Sound != "" {
+			format, err := sound.DetectFormat(m.motion.Sound)
+			if err != nil {
+				return err
+			}
+			if err := sound.Play(format, m.motion.LoadedSound); err != nil {
+				return err
+			}
+		}
+	}
 	m.currentTime += delta
 	if m.currentTime >= m.motion.Meta.Duration {
+		log.Println(m.motion.Meta.Loop)
 		if m.motion.Meta.Loop {
 			m.currentTime = 0.0
 		} else {
@@ -182,4 +197,5 @@ func (m *MotionManager) Update(delta float64) {
 		}
 	}
 	m.saveParameters()
+	return
 }
