@@ -45,10 +45,8 @@ func (g *Game) Update() (err error) {
 	}
 	if hitted {
 		ebiten.SetCursorShape(ebiten.CursorShapePointer)
-	} else {
-		if ebiten.CursorShape() == ebiten.CursorShapePointer {
-			ebiten.SetCursorShape(ebiten.CursorShapeDefault)
-		}
+	} else if ebiten.CursorShape() == ebiten.CursorShapePointer {
+		ebiten.SetCursorShape(ebiten.CursorShapeDefault)
 	}
 	return
 }
