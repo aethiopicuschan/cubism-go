@@ -81,9 +81,10 @@ func (r *Renderer) Update() error {
 
 // 描画オプション
 type DrawOption struct {
-	hidden bool
-	scale  float64
-	x, y   float64
+	hidden     bool
+	scale      float64
+	x, y       float64
+	background color.Color
 }
 
 // 最終的なscreenに対する描画を行わないようにする
@@ -108,13 +109,21 @@ func WithPosition(x, y float64) func(*DrawOption) {
 	}
 }
 
+// 背景色を設定する
+func WithBackground(c color.Color) func(*DrawOption) {
+	return func(o *DrawOption) {
+		o.background = c
+	}
+}
+
 // 描画する
 func (r *Renderer) Draw(screen *ebiten.Image, opts ...func(*DrawOption)) {
 	opt := &DrawOption{
-		hidden: false,
-		scale:  1,
-		x:      0,
-		y:      0,
+		hidden:     false,
+		scale:      1,
+		x:          0,
+		y:          0,
+		background: color.Transparent,
 	}
 	for _, o := range opts {
 		o(opt)
@@ -142,7 +151,7 @@ func (r *Renderer) Draw(screen *ebiten.Image, opts ...func(*DrawOption)) {
 		return
 	}
 
-	screen.Fill(color.White)
+	r.surface.Fill(opt.background)
 	sortedIndices := r.model.GetSortedIndices()
 	for _, index := range sortedIndices {
 		d := r.drawables[index]
