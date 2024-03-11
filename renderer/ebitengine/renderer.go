@@ -143,7 +143,6 @@ func (r *Renderer) Draw(screen *ebiten.Image, opts ...func(*DrawOption)) {
 	}
 
 	screen.Fill(color.White)
-	r.surface.Fill(color.RGBA{0, 255, 0, 255})
 	sortedIndices := r.model.GetSortedIndices()
 	for _, index := range sortedIndices {
 		d := r.drawables[index]
