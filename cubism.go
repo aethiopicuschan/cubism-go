@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/aethiopicuschan/cubism-go/internal/core"
+	"github.com/aethiopicuschan/cubism-go/internal/model"
 	"github.com/aethiopicuschan/cubism-go/internal/motion"
 )
 
@@ -39,7 +40,7 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 		return
 	}
 	// バージョン3に対応した構造体にする
-	var mj modelJson
+	var mj model.ModelJson
 	if err = json.Unmarshal(buf, &mj); err != nil {
 		return
 	}
@@ -122,7 +123,7 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 		if err != nil {
 			return
 		}
-		var e expJson
+		var e model.ExpJson
 		if err = json.Unmarshal(buf, &e); err != nil {
 			return
 		}
@@ -140,12 +141,12 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 			if err != nil {
 				return
 			}
-			var mtnJson motionJson
+			var mtnJson model.MotionJson
 			if err = json.Unmarshal(buf, &mtnJson); err != nil {
 				return
 			}
 			fp := filepath.Base(motion.File)
-			motion := mtnJson.toMotion(fp, motion.FadeInTime, motion.FadeOutTime, motion.Sound)
+			motion := mtnJson.ToMotion(fp, motion.FadeInTime, motion.FadeOutTime, motion.Sound)
 			if motion.Sound != "" {
 				soundPath := filepath.Join(dir, motion.Sound)
 				motion.LoadedSound, err = os.ReadFile(soundPath)
