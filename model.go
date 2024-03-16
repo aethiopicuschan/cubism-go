@@ -8,6 +8,7 @@ import (
 	"github.com/aethiopicuschan/cubism-go/internal/core/drawable"
 	"github.com/aethiopicuschan/cubism-go/internal/core/moc"
 	"github.com/aethiopicuschan/cubism-go/internal/core/parameter"
+	"github.com/aethiopicuschan/cubism-go/internal/model"
 	"github.com/aethiopicuschan/cubism-go/internal/motion"
 )
 
@@ -25,14 +26,14 @@ type Model struct {
 	motions       map[string][]*motion.Motion
 	sortedIndices []int
 	drawables     []Drawable
-	hitAreas      []hitArea
+	hitAreas      []model.HitArea
 	// 外に見せるか未定のもの
-	groups   []group
-	physics  physicsJson
-	pose     poseJson
-	cdi      cdiJson
-	exps     []expJson
-	userdata userdataJson
+	groups   []model.Group
+	physics  model.PhysicsJson
+	pose     model.PoseJson
+	cdi      model.CdiJson
+	exps     []model.ExpJson
+	userdata model.UserDataJson
 }
 
 // バージョンを取得する
@@ -83,7 +84,7 @@ func (m *Model) GetDrawable(id string) (d Drawable, err error) {
 }
 
 // ヒットエリアの一覧を取得する
-func (m *Model) GetHitAreas() []hitArea {
+func (m *Model) GetHitAreas() []model.HitArea {
 	return m.hitAreas
 }
 
