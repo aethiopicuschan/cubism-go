@@ -7,7 +7,7 @@ import (
 
 type MotionManager struct {
 	core            core.Core
-	motion          *Motion
+	motion          Motion
 	modelPtr        uintptr
 	currentTime     float64
 	weight          float64
@@ -16,7 +16,7 @@ type MotionManager struct {
 	savedParameters map[string]float32
 }
 
-func NewMotionManager(core core.Core, modelPtr uintptr, motion *Motion, onFinished func()) *MotionManager {
+func NewMotionManager(core core.Core, modelPtr uintptr, motion Motion, onFinished func()) *MotionManager {
 	return &MotionManager{
 		core:            core,
 		motion:          motion,

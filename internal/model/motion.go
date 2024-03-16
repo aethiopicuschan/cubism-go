@@ -26,15 +26,18 @@ type MotionJson struct {
 }
 
 // motion3.jsonをMotionに変換する
-func (m *MotionJson) ToMotion(fp string, fadein, fadeout float64, sound string) (mtn *motion.Motion) {
-	mtn = &motion.Motion{}
-	mtn.File = fp
-	mtn.FadeInTime = fadein
-	mtn.FadeOutTime = fadeout
-	mtn.Sound = sound
-	mtn.Meta.Duration = m.Meta.Duration
-	mtn.Meta.Loop = m.Meta.Loop
-	mtn.Meta.AreBeziersRestricted = m.Meta.AreBeziersRestricted
+func (m *MotionJson) ToMotion(fp string, fadein, fadeout float64, sound string) (mtn motion.Motion) {
+	mtn = motion.Motion{
+		File:        fp,
+		FadeInTime:  fadein,
+		FadeOutTime: fadeout,
+		Sound:       sound,
+		Meta: motion.Meta{
+			Duration:             m.Meta.Duration,
+			Loop:                 m.Meta.Loop,
+			AreBeziersRestricted: m.Meta.AreBeziersRestricted,
+		},
+	}
 	for _, curve := range m.Curves {
 		var c motion.Curve
 		c.Target = curve.Target

@@ -23,7 +23,7 @@ type Model struct {
 	moc           moc.Moc
 	opacity       float32
 	textures      []string
-	motions       map[string][]*motion.Motion
+	motions       map[string][]motion.Motion
 	sortedIndices []int
 	drawables     []Drawable
 	hitAreas      []model.HitArea
@@ -112,7 +112,7 @@ func (m *Model) GetMotionGroupNames() (names []string) {
 }
 
 // グループに含まれるモーションの一覧を取得する
-func (m *Model) GetMotions(groupName string) []*motion.Motion {
+func (m *Model) GetMotions(groupName string) []motion.Motion {
 	return m.motions[groupName]
 }
 
