@@ -10,6 +10,7 @@ import (
 	renderer "github.com/aethiopicuschan/cubism-go/renderer/ebitengine"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 const (
@@ -45,6 +46,9 @@ func (g *Game) Update() (err error) {
 	}
 	if hitted {
 		ebiten.SetCursorShape(ebiten.CursorShapePointer)
+		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+			g.renderer.GetModel().PlayMotion("TapBody", 0)
+		}
 	} else if ebiten.CursorShape() == ebiten.CursorShapePointer {
 		ebiten.SetCursorShape(ebiten.CursorShapeDefault)
 	}
