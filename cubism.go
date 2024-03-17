@@ -8,10 +8,17 @@ import (
 	"github.com/aethiopicuschan/cubism-go/internal/core"
 	"github.com/aethiopicuschan/cubism-go/internal/model"
 	"github.com/aethiopicuschan/cubism-go/internal/motion"
+	_sound "github.com/aethiopicuschan/cubism-go/internal/sound"
+	"github.com/aethiopicuschan/cubism-go/sound"
 )
 
+/*
+cubism-goの本体
+*/
 type Cubism struct {
 	core core.Core
+	// 音声ファイルを読み込む関数
+	LoadSound func(fp string) (s sound.Sound, err error)
 }
 
 func NewCubism(lib string) (c Cubism, err error) {
@@ -24,6 +31,11 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 	m = &Model{
 		core:    c.core,
 		opacity: 1.0,
+	}
+
+	// もしLoadSoundがnilならデフォルトの関数を使う
+	if c.LoadSound == nil {
+		c.LoadSound = _sound.LoadSound
 	}
 
 	// 絶対パスを取得
@@ -149,7 +161,7 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 			motion := mtnJson.ToMotion(fp, motion.FadeInTime, motion.FadeOutTime, motion.Sound)
 			if motion.Sound != "" {
 				soundPath := filepath.Join(dir, motion.Sound)
-				motion.LoadedSound, err = os.ReadFile(soundPath)
+				motion.LoadedSound, err = c.LoadSound(soundPath)
 				if err != nil {
 					return
 				}

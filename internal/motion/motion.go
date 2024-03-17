@@ -1,5 +1,7 @@
 package motion
 
+import "github.com/aethiopicuschan/cubism-go/sound"
+
 const (
 	Linear = iota
 	Bezier
@@ -37,7 +39,7 @@ type Motion struct {
 	FadeInTime  float64
 	FadeOutTime float64
 	Sound       string
-	LoadedSound []byte
+	LoadedSound sound.Sound
 	Meta        Meta
 	Curves      []Curve
 }

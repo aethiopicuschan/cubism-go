@@ -2,7 +2,6 @@ package motion
 
 import (
 	"github.com/aethiopicuschan/cubism-go/internal/core"
-	"github.com/aethiopicuschan/cubism-go/internal/sound"
 )
 
 type MotionManager struct {
@@ -125,13 +124,7 @@ func (m *MotionManager) Update(delta float64) (err error) {
 	}
 	if m.currentTime == 0.0 {
 		if m.motion.Sound != "" {
-			format, err := sound.DetectFormat(m.motion.Sound)
-			if err != nil {
-				return err
-			}
-			if err := sound.Play(format, m.motion.LoadedSound); err != nil {
-				return err
-			}
+			m.motion.LoadedSound.Play()
 		}
 	}
 	m.currentTime += delta
