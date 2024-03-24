@@ -1,4 +1,4 @@
-package sound
+package normal
 
 import (
 	"bytes"
@@ -25,14 +25,14 @@ func (nopCloser) Close() error {
 
 var initialized = false
 
-type DefaultSound struct {
+type Sound struct {
 	streamer beep.StreamSeekCloser
 	format   beep.Format
 	ctrl     *beep.Ctrl
 }
 
 func LoadSound(fp string) (s sound.Sound, err error) {
-	ds := &DefaultSound{}
+	ds := &Sound{}
 	buf, err := os.ReadFile(fp)
 	if err != nil {
 		return
@@ -40,7 +40,7 @@ func LoadSound(fp string) (s sound.Sound, err error) {
 	return ds, ds.Decode(fp, buf)
 }
 
-func (s *DefaultSound) Decode(fp string, buf []byte) (err error) {
+func (s *Sound) Decode(fp string, buf []byte) (err error) {
 	if s.ctrl != nil {
 		return
 	}
@@ -67,13 +67,14 @@ func (s *DefaultSound) Decode(fp string, buf []byte) (err error) {
 	return
 }
 
-func (s *DefaultSound) Play() {
+func (s *Sound) Play() (err error) {
 	s.streamer.Seek(0)
 	s.ctrl.Paused = false
 	speaker.Play(s.ctrl)
+	return
 }
 
-func (s *DefaultSound) Close() {
+func (s *Sound) Close() {
 	s.ctrl.Paused = true
 	s.streamer.Seek(0)
 }

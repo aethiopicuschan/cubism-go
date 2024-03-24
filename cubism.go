@@ -8,8 +8,8 @@ import (
 	"github.com/aethiopicuschan/cubism-go/internal/core"
 	"github.com/aethiopicuschan/cubism-go/internal/model"
 	"github.com/aethiopicuschan/cubism-go/internal/motion"
-	_sound "github.com/aethiopicuschan/cubism-go/internal/sound"
 	"github.com/aethiopicuschan/cubism-go/sound"
+	"github.com/aethiopicuschan/cubism-go/sound/disabled"
 )
 
 /*
@@ -156,9 +156,9 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 			motion := mtnJson.ToMotion(fp, motion.FadeInTime, motion.FadeOutTime, motion.Sound)
 			if motion.Sound != "" {
 				soundPath := filepath.Join(dir, motion.Sound)
-				// もしLoadSoundがnilならデフォルトの関数を使う
+				// もしLoadSoundがnilなら音声は流さない
 				if c.LoadSound == nil {
-					motion.LoadedSound, err = _sound.LoadSound(soundPath)
+					motion.LoadedSound, err = disabled.LoadSound(soundPath)
 				} else {
 					motion.LoadedSound, err = c.LoadSound(soundPath)
 				}

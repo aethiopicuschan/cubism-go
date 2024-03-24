@@ -7,7 +7,7 @@ package sound
 */
 type Sound interface {
 	// 音声を再生する
-	Play()
+	Play() error
 	// 音声を停止する
 	Close()
 }
