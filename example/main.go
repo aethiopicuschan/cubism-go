@@ -22,6 +22,7 @@ const (
 
 type Game struct {
 	ow, oh   int
+	tapId    int
 	renderer *renderer.Renderer
 }
 
@@ -48,7 +49,8 @@ func (g *Game) Update() (err error) {
 	if hitted {
 		ebiten.SetCursorShape(ebiten.CursorShapePointer)
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-			g.renderer.GetModel().PlayMotion("TapBody", 0, false)
+			g.renderer.GetModel().StopMotion(g.tapId)
+			g.tapId = g.renderer.GetModel().PlayMotion("TapBody", 0, false)
 		}
 	} else if ebiten.CursorShape() == ebiten.CursorShapePointer {
 		ebiten.SetCursorShape(ebiten.CursorShapeDefault)
