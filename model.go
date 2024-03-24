@@ -118,9 +118,12 @@ func (m *Model) GetMotions(groupName string) []motion.Motion {
 
 // モーションを再生する
 func (m *Model) PlayMotion(groupName string, index int) {
-	m.motionManager = motion.NewMotionManager(m.core, m.moc.ModelPtr, m.motions[groupName][index], func() {
-		m.motionManager = nil
-	})
+	if m.motionManager == nil {
+		m.motionManager = motion.NewMotionManager(m.core, m.moc.ModelPtr, func(id int) {
+			m.motionManager.Close(id)
+		})
+	}
+	m.motionManager.Start(m.motions[groupName][index])
 }
 
 // 自動まばたきを有効にする
