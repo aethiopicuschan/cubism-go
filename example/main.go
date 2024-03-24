@@ -48,7 +48,7 @@ func (g *Game) Update() (err error) {
 	if hitted {
 		ebiten.SetCursorShape(ebiten.CursorShapePointer)
 		if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
-			g.renderer.GetModel().PlayMotion("TapBody", 0)
+			g.renderer.GetModel().PlayMotion("TapBody", 0, false)
 		}
 	} else if ebiten.CursorShape() == ebiten.CursorShapePointer {
 		ebiten.SetCursorShape(ebiten.CursorShapeDefault)
@@ -77,7 +77,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	model.PlayMotion("Idle", 0)
+	model.PlayMotion("Idle", 0, true)
 	model.EnableAutoBlink()
 	renderer, err := renderer.NewRenderer(model)
 	if err != nil {

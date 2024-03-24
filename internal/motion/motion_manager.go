@@ -48,6 +48,20 @@ func (mm *MotionManager) Close(id int) {
 	mm.queue = append(mm.queue[:index], mm.queue[index+1:]...)
 }
 
+func (mm *MotionManager) Reset(id int) {
+	index := -1
+	for i, entry := range mm.queue {
+		if entry.id == id {
+			index = i
+			break
+		}
+	}
+	if index == -1 {
+		return
+	}
+	mm.queue[index].currentTime = 0
+}
+
 func (mm *MotionManager) saveParameters() {
 	parameters := mm.core.GetParameters(mm.modelPtr)
 	savedParameters := make(map[string]float32)
