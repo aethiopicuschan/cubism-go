@@ -45,6 +45,7 @@ func (mm *MotionManager) Close(id int) {
 	if index == -1 {
 		return
 	}
+	mm.queue[index].motion.LoadedSound.Close()
 	mm.queue = append(mm.queue[:index], mm.queue[index+1:]...)
 }
 
