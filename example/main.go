@@ -74,13 +74,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// 音声再生のための関数を設定
 	csm.LoadSound = normal.LoadSound
 	model, err := csm.LoadModel(fmt.Sprintf("Resources/%s/%s.model3.json", Name, Name))
 	if err != nil {
 		log.Fatal(err)
 	}
+	// 待機モーションの再生
 	model.PlayMotion("Idle", 0, true)
-	model.EnableAutoBlink()
 	renderer, err := renderer.NewRenderer(model)
 	if err != nil {
 		log.Fatal(err)
