@@ -67,10 +67,11 @@ func (s *DefaultSound) Decode(fp string, buf []byte) (err error) {
 	return
 }
 
-func (s *DefaultSound) Play() {
+func (s *DefaultSound) Play() (err error) {
 	s.streamer.Seek(0)
 	s.ctrl.Paused = false
 	speaker.Play(s.ctrl)
+	return
 }
 
 func (s *DefaultSound) Close() {
