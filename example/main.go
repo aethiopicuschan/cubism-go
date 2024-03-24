@@ -8,6 +8,7 @@ import (
 
 	"github.com/aethiopicuschan/cubism-go"
 	renderer "github.com/aethiopicuschan/cubism-go/renderer/ebitengine"
+	"github.com/aethiopicuschan/cubism-go/sound/normal"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -71,6 +72,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	csm.LoadSound = normal.LoadSound
 	model, err := csm.LoadModel(fmt.Sprintf("Resources/%s/%s.model3.json", Name, Name))
 	if err != nil {
 		log.Fatal(err)
