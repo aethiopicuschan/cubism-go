@@ -6,155 +6,115 @@ import (
 
 type MotionManager struct {
 	core            core.Core
-	motion          Motion
 	modelPtr        uintptr
-	currentTime     float64
-	weight          float64
-	finished        bool
-	onFinished      func()
+	queue           []Entry
+	lastId          int
+	onFinished      func(int)
 	savedParameters map[string]float32
 }
 
-func NewMotionManager(core core.Core, modelPtr uintptr, motion Motion, onFinished func()) *MotionManager {
+func NewMotionManager(core core.Core, modelPtr uintptr, onFinished func(int)) *MotionManager {
 	return &MotionManager{
 		core:            core,
-		motion:          motion,
 		modelPtr:        modelPtr,
-		currentTime:     0,
-		weight:          1,
-		finished:        false,
+		queue:           []Entry{},
+		lastId:          0,
 		onFinished:      onFinished,
 		savedParameters: make(map[string]float32),
 	}
 }
 
-func (m *MotionManager) lerpPoints(a Point, b Point, t float64) Point {
-	return Point{
-		Time:  a.Time + (b.Time-a.Time)*t,
-		Value: a.Value + (b.Value-a.Value)*t,
-	}
+func (mm *MotionManager) Start(motion Motion) int {
+	mm.lastId++
+	mm.queue = append(mm.queue, Entry{
+		motion:      motion,
+		id:          mm.lastId,
+		currentTime: 0,
+	})
+	return mm.lastId
 }
 
-func (m *MotionManager) segmentIntersects(segment Segment) bool {
-	if segment.Type == Linear {
-		return segment.Points[0].Time <= m.currentTime && m.currentTime <= segment.Points[1].Time
-	}
-	if segment.Type == Bezier {
-		return segment.Points[0].Time <= m.currentTime && m.currentTime <= segment.Points[3].Time
-	}
-	if segment.Type == Stepped {
-		return segment.Points[0].Time <= m.currentTime && m.currentTime <= segment.Value
-	}
-	if segment.Type == InverseStepped {
-		return segment.Value <= m.currentTime && m.currentTime <= segment.Points[0].Time
-	}
-	return false
-}
-
-func (m *MotionManager) segmentInterpolate(segment Segment) float64 {
-	t := m.currentTime
-	if segment.Type == Linear {
-		p0, p1 := segment.Points[0], segment.Points[1]
-		k := (t - p0.Time) / (p1.Time - p0.Time)
-		if k < 0.0 {
-			k = 0.0
+func (mm *MotionManager) Close(id int) {
+	index := -1
+	for i, entry := range mm.queue {
+		if entry.id == id {
+			index = i
+			break
 		}
-		return p0.Value + (p1.Value-p0.Value)*k
 	}
-	if segment.Type == Bezier {
-		p0, p1, p2, p3 := segment.Points[0], segment.Points[1], segment.Points[2], segment.Points[3]
-		k := (t - p0.Time) / (p3.Time - p0.Time)
-		if k < 0.0 {
-			k = 0.0
+	if index == -1 {
+		return
+	}
+	mm.queue = append(mm.queue[:index], mm.queue[index+1:]...)
+}
+
+func (mm *MotionManager) Reset(id int) {
+	index := -1
+	for i, entry := range mm.queue {
+		if entry.id == id {
+			index = i
+			break
 		}
-
-		p01 := m.lerpPoints(p0, p1, k)
-		p12 := m.lerpPoints(p1, p2, k)
-		p23 := m.lerpPoints(p2, p3, k)
-		p012 := m.lerpPoints(p01, p12, k)
-		p123 := m.lerpPoints(p12, p23, k)
-		return m.lerpPoints(p012, p123, k).Value
 	}
-	if segment.Type == Stepped {
-		return segment.Points[0].Value
+	if index == -1 {
+		return
 	}
-	if segment.Type == InverseStepped {
-		return segment.Points[0].Value
-	}
-	return 0
+	mm.queue[index].currentTime = 0
 }
 
-func (m *MotionManager) getFade() (fadeIn, fadeOut, fadeWeight float64) {
-	fadeWeight = m.weight
-	if m.motion.FadeInTime == 0.0 {
-		fadeIn = 1.0
-	} else {
-		fadeIn = getEasingSine(m.currentTime / m.motion.FadeInTime)
-	}
-	if m.motion.FadeOutTime == 0.0 || m.motion.Meta.Duration < 0.0 {
-		fadeOut = 1.0
-	} else {
-		fadeOut = getEasingSine((m.motion.Meta.Duration - m.currentTime) / m.motion.FadeOutTime)
-	}
-	fadeWeight = fadeWeight * fadeIn * fadeOut
-	return
-}
-
-func (m *MotionManager) saveParameters() {
-	parameters := m.core.GetParameters(m.modelPtr)
+func (mm *MotionManager) saveParameters() {
+	parameters := mm.core.GetParameters(mm.modelPtr)
 	savedParameters := make(map[string]float32)
 	for _, parameter := range parameters {
 		savedParameters[parameter.Id] = parameter.Current
 	}
-	m.savedParameters = savedParameters
+	mm.savedParameters = savedParameters
 }
 
-func (m *MotionManager) loadParameters() {
-	if m.savedParameters == nil {
+func (mm *MotionManager) loadParameters() {
+	if mm.savedParameters == nil {
 		return
 	}
-	for id, value := range m.savedParameters {
-		m.core.SetParameterValue(m.modelPtr, id, value)
+	for id, value := range mm.savedParameters {
+		mm.core.SetParameterValue(mm.modelPtr, id, value)
 	}
 }
 
-func (m *MotionManager) Update(delta float64) (err error) {
-	if m.finished {
+func (mm *MotionManager) Update(deltaTime float64) {
+	if len(mm.queue) == 0 {
 		return
 	}
-	if m.currentTime == 0.0 {
-		if m.motion.Sound != "" {
-			m.motion.LoadedSound.Play()
+	finished := mm.queue[len(mm.queue)-1].Update(deltaTime)
+	if finished {
+		mm.onFinished(mm.queue[len(mm.queue)-1].id)
+	}
+	if len(mm.queue) == 0 {
+		return
+	}
+	mm.loadParameters()
+
+	entry := mm.queue[len(mm.queue)-1]
+	if entry.currentTime == deltaTime {
+		if entry.motion.Sound != "" {
+			entry.motion.LoadedSound.Play()
 		}
 	}
-	m.currentTime += delta
-	if m.currentTime >= m.motion.Meta.Duration {
-		if m.motion.Meta.Loop {
-			m.currentTime = 0.0
-		} else {
-			m.finished = true
-			m.onFinished()
-		}
-	}
-
-	fadeIn, fadeOut, fadeWeight := m.getFade()
-
-	m.loadParameters()
-	for _, curve := range m.motion.Curves {
+	fadeIn, fadeOut, fadeWeight := getFade(entry.motion, 1.0, entry.currentTime)
+	for _, curve := range entry.motion.Curves {
 		for _, seg := range curve.Segments {
-			if !m.segmentIntersects(seg) {
+			if !segmentIntersects(seg, entry.currentTime) {
 				continue
 			}
-			value := m.segmentInterpolate(seg)
+			value := segmentInterpolate(seg, entry.currentTime)
 			if curve.Target == "Model" {
 				// TODO implement
 			}
 			if curve.Target == "PartOpacity" {
-				m.core.SetPartOpacity(m.modelPtr, curve.Id, float32(value))
+				mm.core.SetPartOpacity(mm.modelPtr, curve.Id, float32(value))
 			}
 			if curve.Target == "Parameter" {
 				var v float32
-				sourceValue := m.core.GetParameterValue(m.modelPtr, curve.Id)
+				sourceValue := mm.core.GetParameterValue(mm.modelPtr, curve.Id)
 				if curve.FadeInTime < 0.0 && curve.FadeOutTime < 0.0 {
 					// パラメータに対してフェードが設定されていない場合はモーションのフェードを適用する
 					v = sourceValue + (float32(value)-sourceValue)*float32(fadeWeight)
@@ -167,7 +127,7 @@ func (m *MotionManager) Update(delta float64) (err error) {
 						if curve.FadeInTime == 0.0 {
 							fin = 1.0
 						} else {
-							fin = getEasingSine(m.currentTime / curve.FadeInTime)
+							fin = getEasingSine(entry.currentTime / curve.FadeInTime)
 						}
 					}
 					if curve.FadeOutTime < 0 {
@@ -176,16 +136,15 @@ func (m *MotionManager) Update(delta float64) (err error) {
 						if curve.FadeOutTime == 0.0 {
 							fout = 1.0
 						} else {
-							fout = getEasingSine((m.motion.Meta.Duration - m.currentTime) / curve.FadeOutTime)
+							fout = getEasingSine((entry.motion.Meta.Duration - entry.currentTime) / curve.FadeOutTime)
 						}
 					}
-					paramWeight := m.weight * fin * fout
+					paramWeight := 1.0 * fin * fout
 					v = sourceValue + (float32(value)-sourceValue)*float32(paramWeight)
 				}
-				m.core.SetParameterValue(m.modelPtr, curve.Id, v)
+				mm.core.SetParameterValue(mm.modelPtr, curve.Id, v)
 			}
 		}
 	}
-	m.saveParameters()
-	return
+	mm.saveParameters()
 }

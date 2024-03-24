@@ -16,6 +16,7 @@ import (
 type Model struct {
 	// 内部的に必要なもの
 	motionManager *motion.MotionManager
+	loopMotions   []int
 	blinkManager  *blink.BlinkManager
 	// Getterで取得のみ可能なもの
 	version       int
@@ -117,10 +118,34 @@ func (m *Model) GetMotions(groupName string) []motion.Motion {
 }
 
 // モーションを再生する
-func (m *Model) PlayMotion(groupName string, index int) {
-	m.motionManager = motion.NewMotionManager(m.core, m.moc.ModelPtr, m.motions[groupName][index], func() {
-		m.motionManager = nil
-	})
+func (m *Model) PlayMotion(groupName string, index int, loop bool) (id int) {
+	if m.motionManager == nil {
+		m.motionManager = motion.NewMotionManager(m.core, m.moc.ModelPtr, func(id int) {
+			for _, loopId := range m.loopMotions {
+				if id == loopId {
+					m.motionManager.Reset(id)
+					return
+				}
+			}
+			m.motionManager.Close(id)
+		})
+	}
+	id = m.motionManager.Start(m.motions[groupName][index])
+	if loop {
+		m.loopMotions = append(m.loopMotions, id)
+	}
+	return
+}
+
+// モーションを停止する
+func (m *Model) StopMotion(id int) {
+	for i, loopId := range m.loopMotions {
+		if id == loopId {
+			m.loopMotions = append(m.loopMotions[:i], m.loopMotions[i+1:]...)
+			break
+		}
+	}
+	m.motionManager.Close(id)
 }
 
 // 自動まばたきを有効にする
