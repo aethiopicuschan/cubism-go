@@ -22,7 +22,7 @@ go get -u github.com/aethiopicuschan/cubism-go
 
 exampleディレクトリにサンプルコードがあります。おおむね全ての機能を利用したものとなっているので、[Go Reference](https://pkg.go.dev/github.com/aethiopicuschan/cubism-go)と合わせて参照してください。
 
-また、描画の実装として `render/ebitengine` パッケージがあります。
+また、描画の実装として `renderer/ebitengine` パッケージがあります。
 これにより、[Ebitegine](https://ebitengine.org/)を用いたプロジェクトで簡単に利用することができます。もちろん、自身で実装した `renderer` を使うことも可能です。
 
 また、音声の再生のための実装をいくつか用意しています。
