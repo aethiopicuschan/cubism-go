@@ -84,6 +84,11 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 			Masks:           d.Masks,
 		})
 	}
+	// Drawablesのmapを作成
+	m.drawablesMap = map[string]Drawable{}
+	for _, d := range m.drawables {
+		m.drawablesMap[d.Id] = d
+	}
 	// ソート済みインデックスを取得
 	m.sortedIndices = c.core.GetSortedDrawableIndices(m.moc.ModelPtr)
 

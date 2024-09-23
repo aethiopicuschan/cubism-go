@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/aethiopicuschan/cubism-go/internal/utils"
+	"github.com/aethiopicuschan/cubism-go/renderer/utils"
 )
 
 func assertFloat32(exp float32, got float32) (err error) {

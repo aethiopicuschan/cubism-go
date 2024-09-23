@@ -27,6 +27,7 @@ type Model struct {
 	motions       map[string][]motion.Motion
 	sortedIndices []int
 	drawables     []Drawable
+	drawablesMap  map[string]Drawable
 	hitAreas      []model.HitArea
 	// 外に見せるか未定のもの
 	groups   []model.Group
@@ -74,11 +75,8 @@ func (m *Model) GetDrawables() []Drawable {
 
 // 指定したIDのDrawableを取得する
 func (m *Model) GetDrawable(id string) (d Drawable, err error) {
-	for _, drawable := range m.drawables {
-		if drawable.Id == id {
-			d = drawable
-			return
-		}
+	if d, ok := m.drawablesMap[id]; ok {
+		return d, nil
 	}
 	err = fmt.Errorf("Drawable not found: %s", id)
 	return

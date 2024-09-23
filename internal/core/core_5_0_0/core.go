@@ -151,8 +151,6 @@ func (c *Core) GetVertexPositions(modelPtr uintptr) (vps [][]drawable.Vector2) {
 	count := c.csmGetDrawableCount(modelPtr)
 	// 頂点の数
 	vertexCounts := unsafe.Slice((*int32)(unsafe.Pointer(c.csmGetDrawableVertexCounts(modelPtr))), count)
-	// 頂点
-	vps = make([][]drawable.Vector2, 0)
 	posPtr := c.csmGetDrawableVertexPositions(modelPtr)
 	for i := 0; i < count; i++ {
 		vertexCount := vertexCounts[i]
