@@ -162,19 +162,26 @@ func (r *Renderer) Draw(screen *ebiten.Image, opts ...func(*DrawOption)) {
 		if len(d.Masks) > 0 {
 			r.fb.Fill(color.RGBA{0, 0, 0, 0})
 			r.mb.Fill(color.RGBA{0, 0, 0, 0})
+			changed := false
 			for _, maskIndex := range d.Masks {
 				mask := r.drawables[maskIndex]
+				if !mask.DynamicFlag.VertexPositionsDidChange {
+					continue
+				}
 				maskOptions := &colorm.DrawTrianglesOptions{}
 				maskColorM := colorm.ColorM{}
 				maskColorM.Scale(0, 0, 0, 1)
 				maskOptions.AntiAlias = true
 				colorm.DrawTriangles(r.mb, r.vertices[maskIndex], mask.VertexIndices, r.textureMap[mask.Texture], maskColorM, maskOptions)
+				changed = true
 			}
-			r.fb.DrawTriangles(vertices, d.VertexIndices, r.textureMap[d.Texture], &ebiten.DrawTrianglesOptions{})
-			options := &ebiten.DrawRectShaderOptions{}
-			options.Images[0] = r.mb
-			options.Images[1] = r.fb
-			r.surface.DrawRectShader(r.fb.Bounds().Dx(), r.fb.Bounds().Dy(), r.maskShader, options)
+			if changed {
+				r.fb.DrawTriangles(vertices, d.VertexIndices, r.textureMap[d.Texture], &ebiten.DrawTrianglesOptions{})
+				options := &ebiten.DrawRectShaderOptions{}
+				options.Images[0] = r.mb
+				options.Images[1] = r.fb
+				r.surface.DrawRectShader(r.fb.Bounds().Dx(), r.fb.Bounds().Dy(), r.maskShader, options)
+			}
 		} else {
 			colorM := colorm.ColorM{}
 			colorM.Scale(1, 1, 1, float64(d.Opacity))
