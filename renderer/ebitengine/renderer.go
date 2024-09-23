@@ -6,7 +6,7 @@ import (
 	"image/color"
 
 	"github.com/aethiopicuschan/cubism-go"
-	"github.com/aethiopicuschan/cubism-go/internal/utils"
+	"github.com/aethiopicuschan/cubism-go/renderer/utils"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/colorm"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
