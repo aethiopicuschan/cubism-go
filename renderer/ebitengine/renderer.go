@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"image"
 	"image/color"
+	_ "image/png"
 
 	"github.com/aethiopicuschan/cubism-go"
 	"github.com/aethiopicuschan/cubism-go/renderer/utils"
