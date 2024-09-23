@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"image/color"
-	_ "image/png"
 	"log"
 
 	"github.com/aethiopicuschan/cubism-go"
@@ -15,7 +14,7 @@ import (
 )
 
 const (
-	Name   = "Haru"
+	Name   = "Mao"
 	Width  = 2880
 	Height = 1800
 )
