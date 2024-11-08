@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	Name   = "Mao"
+	Name   = "Haru"
 	Width  = 2880
 	Height = 1800
 )
