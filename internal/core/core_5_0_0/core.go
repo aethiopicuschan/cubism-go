@@ -87,32 +87,32 @@ func NewCore(lib uintptr) (c *Core, err error) {
 	return
 }
 
-// moc3をロードしてmoc.Mocを返す
+// Load moc3 and return moc.Moc
 func (c *Core) LoadMoc(path string) (moc moc.Moc, err error) {
-	// moc3を読み込む
+	// Read the moc3
 	moc.MocBuffer, err = os.ReadFile(path)
 	if err != nil {
 		return
 	}
-	// 整合性を確認
+	// Check the consistency
 	consistency := c.csmHasMocConsistency(uintptr(unsafe.Pointer(&moc.MocBuffer[0])), uint(len(moc.MocBuffer)))
 	if consistency != 1 {
 		err = fmt.Errorf("moc3 is not consistent")
 		return
 	}
-	// moc3をロードする
+	// Load the moc3
 	moc.MocPtr = c.csmReviveMocInPlace(uintptr(unsafe.Pointer(&moc.MocBuffer[0])), uint(len(moc.MocBuffer)))
 	if moc.MocPtr == 0 {
 		err = fmt.Errorf("failed to revive moc3")
 		return
 	}
-	// サイズを取得
+	// Get size
 	size := c.csmGetSizeofModel(moc.MocPtr)
 	if size == 0 {
 		err = fmt.Errorf("failed to get size of model")
 		return
 	}
-	// モデルを初期化
+	// Initialize the model
 	moc.ModelBuffer = make([]byte, size)
 	moc.ModelPtr = c.csmInitializeModelInPlace(moc.MocPtr, uintptr(unsafe.Pointer(&moc.ModelBuffer[0])), size)
 	if moc.ModelPtr == 0 {
@@ -123,13 +123,13 @@ func (c *Core) LoadMoc(path string) (moc moc.Moc, err error) {
 	return
 }
 
-// バージョンを取得する
+// Get version
 func (c *Core) GetVersion() string {
 	raw := c.csmGetVersion()
 	return utils.ParseVersion(raw)
 }
 
-// 動的フラグを取得する
+// Get dynamic flags
 func (c *Core) GetDynamicFlags(modelPtr uintptr) (rs []drawable.DynamicFlag) {
 	count := c.csmGetDrawableCount(modelPtr)
 	raw := unsafe.Slice((*uint8)(unsafe.Pointer(c.csmGetDrawableDynamicFlags(modelPtr))), count)
@@ -139,14 +139,14 @@ func (c *Core) GetDynamicFlags(modelPtr uintptr) (rs []drawable.DynamicFlag) {
 	return
 }
 
-// 透明度を取得する
+// Get opacities
 func (c *Core) GetOpacities(modelPtr uintptr) (rs []float32) {
 	count := c.csmGetDrawableCount(modelPtr)
 	rs = unsafe.Slice((*float32)(unsafe.Pointer(c.csmGetDrawableOpacities(modelPtr))), count)
 	return
 }
 
-// 頂点を取得する
+// Get vertex positions
 func (c *Core) GetVertexPositions(modelPtr uintptr) (vps [][]drawable.Vector2) {
 	count := c.csmGetDrawableCount(modelPtr)
 	// 頂点の数
@@ -160,31 +160,25 @@ func (c *Core) GetVertexPositions(modelPtr uintptr) (vps [][]drawable.Vector2) {
 	return
 }
 
-// Drawablesを取得する
-// すべての情報を集めるので、コストが高い。初回のみ呼び出す想定
+// Get Drawables
+// Since all the information is gathered, the cost is high. It is expected to be called only once initially
 func (c *Core) GetDrawables(modelPtr uintptr) (ds []drawable.Drawable) {
-	// Drawableの数
 	count := c.csmGetDrawableCount(modelPtr)
 
-	// 固定フラグ
 	constantFlags := make([]drawable.ConstantFlag, 0)
 	raw := unsafe.Slice((*uint8)(unsafe.Pointer(c.csmGetDrawableConstantFlags(modelPtr))), count)
 	for _, flag := range raw {
 		constantFlags = append(constantFlags, drawable.ParseConstantFlag(flag))
 	}
 
-	// 動的フラグ
 	dynamicFlags := c.GetDynamicFlags(modelPtr)
 
-	// テクスチャインデックス
 	textureIndices := unsafe.Slice((*int32)(unsafe.Pointer(c.csmGetDrawableTextureIndices(modelPtr))), count)
 
-	// 不透明度
 	opacities := c.GetOpacities(modelPtr)
 
-	// 頂点の数
 	vertexCounts := unsafe.Slice((*int32)(unsafe.Pointer(c.csmGetDrawableVertexCounts(modelPtr))), count)
-	// 頂点
+
 	vertexPositions := make([][]drawable.Vector2, 0)
 	vertexUvs := make([][]drawable.Vector2, 0)
 	posPtr := c.csmGetDrawableVertexPositions(modelPtr)
@@ -197,9 +191,9 @@ func (c *Core) GetDrawables(modelPtr uintptr) (ds []drawable.Drawable) {
 		vertexUvs = append(vertexUvs, uvs)
 	}
 
-	// ポリゴンの対応番号配列のサイズ
+	// Size of the array of corresponding numbers for the polygon
 	indexCounts := unsafe.Slice((*int32)(unsafe.Pointer(c.csmGetDrawableIndexCounts(modelPtr))), count)
-	// ポリゴンの対応番号配列
+	// Array of corresponding numbers for the polygon
 	indices := make([][]uint16, 0)
 	indicesPtr := c.csmGetDrawableIndices(modelPtr)
 	for i := 0; i < count; i++ {
@@ -207,9 +201,9 @@ func (c *Core) GetDrawables(modelPtr uintptr) (ds []drawable.Drawable) {
 		indices = append(indices, unsafe.Slice(*(**uint16)(unsafe.Pointer(indicesPtr + uintptr(i)*unsafe.Sizeof(uintptr(0)))), int(indexCount)))
 	}
 
-	// マスクの数
+	// Number of masks
 	maskCounts := unsafe.Slice((*int32)(unsafe.Pointer(c.csmGetDrawableMaskCounts(modelPtr))), count)
-	// マスク
+	// Masks
 	masks := make([][]int32, 0)
 	maskPtr := c.csmGetDrawableMasks(modelPtr)
 	for i := 0; i < count; i++ {
@@ -225,7 +219,7 @@ func (c *Core) GetDrawables(modelPtr uintptr) (ds []drawable.Drawable) {
 		ids = append(ids, strings.GoString(uintptr(unsafe.Pointer(ptr))))
 	}
 
-	// 構造体に詰める
+	// Pack into a structure
 	for i := 0; i < count; i++ {
 		d := drawable.Drawable{
 			Id:              ids[i],
@@ -243,7 +237,7 @@ func (c *Core) GetDrawables(modelPtr uintptr) (ds []drawable.Drawable) {
 	return
 }
 
-// パラメータの一覧を取得する
+// Get parameters
 func (c *Core) GetParameters(modelPtr uintptr) (parameters []parameter.Parameter) {
 	count := c.csmGetParameterCount(modelPtr)
 	idsPtr := c.csmGetParameterIds(modelPtr)
@@ -269,7 +263,7 @@ func (c *Core) GetParameters(modelPtr uintptr) (parameters []parameter.Parameter
 	return
 }
 
-// パラメータの値を取得する
+// Get parameter value
 func (c *Core) GetParameterValue(modelPtr uintptr, id string) float32 {
 	count := c.csmGetParameterCount(modelPtr)
 	idsPtr := c.csmGetParameterIds(modelPtr)
@@ -285,7 +279,7 @@ func (c *Core) GetParameterValue(modelPtr uintptr, id string) float32 {
 	return 0
 }
 
-// パラメータの値を設定する
+// Set parameter value
 func (c *Core) SetParameterValue(modelPtr uintptr, id string, value float32) {
 	count := c.csmGetParameterCount(modelPtr)
 	idsPtr := c.csmGetParameterIds(modelPtr)
@@ -299,7 +293,7 @@ func (c *Core) SetParameterValue(modelPtr uintptr, id string, value float32) {
 	}
 }
 
-// パーツのIDを取得する
+// Get the part IDs
 func (c *Core) GetPartIds(modelPtr uintptr) (ids []string) {
 	count := c.csmGetPartCount(modelPtr)
 	idsPtr := c.csmGetPartIds(modelPtr)
@@ -310,7 +304,7 @@ func (c *Core) GetPartIds(modelPtr uintptr) (ids []string) {
 	return
 }
 
-// パーツの不透明度を設定する
+// Set the part's opacity
 func (c *Core) SetPartOpacity(modelPtr uintptr, id string, value float32) {
 	ids := c.GetPartIds(modelPtr)
 	ptr := c.csmGetPartOpacities(modelPtr)
@@ -322,8 +316,8 @@ func (c *Core) SetPartOpacity(modelPtr uintptr, id string, value float32) {
 	}
 }
 
-// 描画順を取得する
-// n番目に描画するDrawableのインデックスは rs[n] で取得できる
+// Get the drawing order
+// The index of the n-th drawable to be drawn can be obtained with rs[n].
 func (c *Core) GetSortedDrawableIndices(modelPtr uintptr) (rs []int) {
 	// Drawableの数
 	count := c.csmGetDrawableCount(modelPtr)
@@ -337,13 +331,13 @@ func (c *Core) GetSortedDrawableIndices(modelPtr uintptr) (rs []int) {
 	return
 }
 
-// キャンバスの情報を取得する
+// Get the canvas info
 func (c *Core) GetCanvasInfo(modelPtr uintptr) (size drawable.Vector2, origin drawable.Vector2, pixelsPerUnit float32) {
 	c.csmReadCanvasInfo(modelPtr, uintptr(unsafe.Pointer(&size)), uintptr(unsafe.Pointer(&origin)), uintptr(unsafe.Pointer(&pixelsPerUnit)))
 	return
 }
 
-// モデルを更新する
+// Update the model
 func (c *Core) Update(modelPtr uintptr) {
 	c.csmResetDrawableDynamicFlags(modelPtr)
 	c.csmUpdateModel(modelPtr)

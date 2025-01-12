@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	EyeStateFirst    = iota ///< 初期状態
-	EyeStateInterval        ///< まばたきしていない状態
-	EyeStateClosing         ///< まぶたが閉じていく途中の状態
-	EyeStateClosed          ///< まぶたが閉じている状態
-	EyeStateOpening         ///< まぶたが開いていく途中の状態
+	EyeStateFirst    = iota ///< Initial state
+	EyeStateInterval        ///< State where the eyes are not blinking
+	EyeStateClosing         ///< State where the eyelids are closing
+	EyeStateClosed          ///< State where the eyelids are closed
+	EyeStateOpening         ///< State where the eyelids are opening
 )
 
 type BlinkManager struct {

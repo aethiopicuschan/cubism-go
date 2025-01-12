@@ -26,7 +26,7 @@ type Renderer struct {
 	final           image.Rectangle
 }
 
-// 新しいレンダラを作成する
+// Constructor for the [Renderer] struct
 func NewRenderer(model *cubism.Model) (r *Renderer, err error) {
 	modelPtr := model.GetMoc().ModelPtr
 	core := model.GetCore()
@@ -55,7 +55,7 @@ func NewRenderer(model *cubism.Model) (r *Renderer, err error) {
 	return
 }
 
-// レンダラを更新する
+// Update the renderer
 func (r *Renderer) Update() error {
 	r.model.Update(1.0 / float64(ebiten.TPS()))
 	r.drawables = r.model.GetDrawables()
@@ -80,7 +80,7 @@ func (r *Renderer) Update() error {
 	return nil
 }
 
-// 描画オプション
+// Options for drawing
 type DrawOption struct {
 	hidden     bool
 	scale      float64
@@ -88,21 +88,21 @@ type DrawOption struct {
 	background color.Color
 }
 
-// 最終的なscreenに対する描画を行わないようにする
+// Prevent rendering to the final screen
 func WithHidden() func(*DrawOption) {
 	return func(o *DrawOption) {
 		o.hidden = true
 	}
 }
 
-// スケールを設定する
+// Set the scale
 func WithScale(scale float64) func(*DrawOption) {
 	return func(o *DrawOption) {
 		o.scale = scale
 	}
 }
 
-// 位置を設定する
+// Set the position
 func WithPosition(x, y float64) func(*DrawOption) {
 	return func(o *DrawOption) {
 		o.x = x
@@ -110,14 +110,14 @@ func WithPosition(x, y float64) func(*DrawOption) {
 	}
 }
 
-// 背景色を設定する
+// Set the background color
 func WithBackground(c color.Color) func(*DrawOption) {
 	return func(o *DrawOption) {
 		o.background = c
 	}
 }
 
-// 描画する
+// Draw the renderer
 func (r *Renderer) Draw(screen *ebiten.Image, opts ...func(*DrawOption)) {
 	opt := &DrawOption{
 		hidden:     false,
@@ -131,21 +131,21 @@ func (r *Renderer) Draw(screen *ebiten.Image, opts ...func(*DrawOption)) {
 	}
 
 	last_options := &ebiten.DrawImageOptions{}
-	// まず、画面サイズに合わせる
+	// First, adjust to the screen size
 	screenWidth, screenHeight := float64(screen.Bounds().Dx()), float64(screen.Bounds().Dy())
 	surfaceWidth, surfaceHeight := float64(r.surface.Bounds().Dx()), float64(r.surface.Bounds().Dy())
 	last_options.GeoM.Scale(screenHeight/screenWidth, 1)
 	last_options.GeoM.Scale(screenWidth/surfaceWidth, screenHeight/surfaceHeight)
-	// スケールオプションを適用
+	// Apply the scale options
 	last_options.GeoM.Scale(opt.scale, opt.scale)
-	// 横軸を中央に合わせる
+	// Align the horizontal axis to the center
 	width := screenWidth * (screenHeight / screenWidth) * opt.scale
 	height := screenHeight * opt.scale
 	x := screenWidth/2 - width/2 + opt.x
 	y := screenHeight/2 - height/2 + opt.y
 	last_options.GeoM.Translate(x, y)
 	r.final = image.Rect(int(x), int(y), int(x+width), int(y+height))
-	// アルファ値
+	// Set Alpha
 	last_options.ColorScale.SetA(r.model.GetOpacity())
 
 	if opt.hidden {
@@ -192,34 +192,34 @@ func (r *Renderer) Draw(screen *ebiten.Image, opts ...func(*DrawOption)) {
 		}
 	}
 
-	// 描画
+	// Draw
 	screen.DrawImage(r.surface, last_options)
 }
 
-// レンダラに設定されているモデルを取得する
+// Get the model set in the renderer
 func (r *Renderer) GetModel() *cubism.Model {
 	return r.model
 }
 
-// 当たり判定を行う
+// Perform collision detection
 func (r *Renderer) IsHit(x, y int, id string) (hit bool, err error) {
-	// そもそも範囲外
+	// Out of bounds
 	if r.final.Min.X > x || x > r.final.Max.X || r.final.Min.Y > y || y > r.final.Max.Y {
 		return
 	}
 
-	// Drawableを取得
+	// Get the Drawable
 	d, err := r.model.GetDrawable(id)
 	if err != nil {
 		return
 	}
 
-	// 矩形の範囲
+	// Rectangular range
 	var left, right, top, bottom float32
 	left = float32(r.surface.Bounds().Dx())
 	top = float32(r.surface.Bounds().Dy())
 
-	// Drawableの範囲を表す矩形を取得
+	// Get the rectangle representing the range of the Drawable
 	for i := 0; i < len(d.VertexPositions); i++ {
 		v := d.VertexPositions[i]
 		if v.X < left {
@@ -236,7 +236,7 @@ func (r *Renderer) IsHit(x, y int, id string) (hit bool, err error) {
 		}
 	}
 
-	// ローカル座標に変換
+	// Convert to local coordinates
 	localX := utils.Normalize(float32(x), float32(r.final.Min.X), float32(r.final.Max.X))
 	localY := utils.Normalize(float32(y), float32(r.final.Min.Y), float32(r.final.Max.Y)) * -1
 

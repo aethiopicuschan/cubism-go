@@ -117,10 +117,10 @@ func (mm *MotionManager) Update(deltaTime float64) {
 				var v float32
 				sourceValue := mm.core.GetParameterValue(mm.modelPtr, curve.Id)
 				if curve.FadeInTime < 0.0 && curve.FadeOutTime < 0.0 {
-					// パラメータに対してフェードが設定されていない場合はモーションのフェードを適用する
+					// If the fade is not set for the parameter, apply the motion fade
 					v = sourceValue + (float32(value)-sourceValue)*float32(fadeWeight)
 				} else {
-					// パラメータに対してフェードが設定されている場合はそちらを適用する
+					// If a fade is set for the parameter, apply that fade
 					var fin, fout float64
 					if curve.FadeInTime < 0 {
 						fin = fadeIn

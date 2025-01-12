@@ -1,6 +1,6 @@
 package model
 
-// *.physics3.json用の構造体
+// struct for *.physics3.json files
 type PhysicsJson struct {
 	Version int `json:"Version"`
 	Meta    struct {
