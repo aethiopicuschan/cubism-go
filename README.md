@@ -5,50 +5,50 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/aethiopicuschan/cubism-go)](https://goreportcard.com/report/github.com/aethiopicuschan/cubism-go)
 [![CI](https://github.com/aethiopicuschan/cubism-go/actions/workflows/ci.yaml/badge.svg)](https://github.com/aethiopicuschan/cubism-go/actions/workflows/ci.yaml)
 
-cubism-goは[Live2D Cubism SDK](https://www.live2d.com/sdk/about/)の非公式版のGolang実装です。[ebitengine/purego](https://github.com/ebitengine/purego)を用いているため扱いやすいです。
+cubism-go is an unofficial Golang implementation of the [Live2D Cubism SDK](https://www.live2d.com/sdk/about/). It leverages [ebitengine/purego](https://github.com/ebitengine/purego), making it easy to use.
 
-## インストール
+## Installation
 
 ```bash
 go get -u github.com/aethiopicuschan/cubism-go
 ```
 
-## 動作に必要なもの
+## Requirements
 
-- cubism coreの動的ライブラリ
-- Live2Dモデル
+- Dynamic library for Cubism Core
+- Live2D model
 
-## 使い方
+## Usage
 
-exampleディレクトリにサンプルコードがあります。おおむね全ての機能を利用したものとなっているので、[Go Reference](https://pkg.go.dev/github.com/aethiopicuschan/cubism-go)と合わせて参照してください。
+Sample code is available in the `example` directory. It demonstrates the use of almost all functionalities, so please refer to it alongside the [Go Reference](https://pkg.go.dev/github.com/aethiopicuschan/cubism-go).
 
-また、描画の実装として `renderer/ebitengine` パッケージがあります。
-これにより、[Ebitegine](https://ebitengine.org/)を用いたプロジェクトで簡単に利用することができます。もちろん、自身で実装した `renderer` を使うことも可能です。
+Additionally, there is a `renderer/ebitengine` package for rendering implementations.
+This package enables seamless integration with projects using [Ebiten](https://ebitengine.org/). Of course, you can also use your custom `renderer`.
 
-また、音声の再生のための実装をいくつか用意しています。
+Moreover, there are several implementations available for audio playback:
 
 - `sound/normal`
-  - 一番素直と思われる実装
+  - A straightforward implementation
 - `sound/delay`
-  - 音声ファイルの読み込みやデコード等を再生時まで遅延させる実装
+  - An implementation that defers loading and decoding of audio files until playback
 - `sound/disabled`
-  - 音声再生を無効化する実装
+  - An implementation that disables audio playback
 
-こちらも自身で実装することが可能です。
+You can also implement your own version of these.
 
-## 開発時のこと
+## Development
 
-`pre-commit`フックのために[lefthook](https://github.com/evilmartians/lefthook)を利用しています。内容は以下の通りです。
+For `pre-commit` hooks, we use [lefthook](https://github.com/evilmartians/lefthook). The configured tools include:
 
 - [staticcheck](https://staticcheck.dev)
 - [typos](https://github.com/crate-ci/typos)
 
-[Homebrew](https://brew.sh/)を利用している場合は以下のコマンドで全てインストールできます。
+If you're using [Homebrew](https://brew.sh/), you can install all the necessary tools with the following command:
 
 ```sh
 brew install lefthook staticcheck typos-cli
 ```
 
-合わせて`lefthook install`を実行することで、フックが有効になります。
+After that, run `lefthook install` to enable the hooks.
 
-また、GitHub Actionsでも同様のチェックを行っています。
+The same checks are also performed using GitHub Actions.
