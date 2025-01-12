@@ -35,3 +35,20 @@ exampleディレクトリにサンプルコードがあります。おおむね�
   - 音声再生を無効化する実装
 
 こちらも自身で実装することが可能です。
+
+## 開発時のこと
+
+`pre-commit`フックのために[lefthook](https://github.com/evilmartians/lefthook)を利用しています。内容は以下の通りです。
+
+- [staticcheck](https://staticcheck.dev)
+- [typos](https://github.com/crate-ci/typos)
+
+[Homebrew](https://brew.sh/)を利用している場合は以下のコマンドで全てインストールできます。
+
+```sh
+brew install lefthook staticcheck typos-cli
+```
+
+合わせて`lefthook install`を実行することで、フックが有効になります。
+
+また、GitHub Actionsでも同様のチェックを行っています。
