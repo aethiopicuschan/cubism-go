@@ -12,13 +12,13 @@ import (
 	"github.com/aethiopicuschan/cubism-go/internal/motion"
 )
 
-// モデルを表す構造体
+// A model struct
 type Model struct {
-	// 内部的に必要なもの
+	// Internally required
 	motionManager *motion.MotionManager
 	loopMotions   []int
 	blinkManager  *blink.BlinkManager
-	// Getterで取得のみ可能なもの
+	// Read-only via getters
 	version       int
 	core          core.Core
 	moc           moc.Moc
@@ -29,7 +29,7 @@ type Model struct {
 	drawables     []Drawable
 	drawablesMap  map[string]Drawable
 	hitAreas      []model.HitArea
-	// 外に見せるか未定のもの
+	// Not exposed externally
 	groups   []model.Group
 	physics  model.PhysicsJson
 	pose     model.PoseJson
@@ -38,42 +38,42 @@ type Model struct {
 	userdata model.UserDataJson
 }
 
-// バージョンを取得する
+// Get the version of the model
 func (m *Model) GetVersion() int {
 	return m.version
 }
 
-// コアを取得する
+// Get the core
 func (m *Model) GetCore() core.Core {
 	return m.core
 }
 
-// Mocを取得する
+// Get the moc
 func (m *Model) GetMoc() moc.Moc {
 	return m.moc
 }
 
-// 透明度を取得する
+// Get the opacity of the model
 func (m *Model) GetOpacity() float32 {
 	return m.opacity
 }
 
-// テクスチャ画像のパスを取得する
+// Get the path of a texture image
 func (m *Model) GetTextures() []string {
 	return m.textures
 }
 
-// ソート済みの描画順のインデックスを取得する
+// Get the sorted drawing order indices
 func (m *Model) GetSortedIndices() []int {
 	return m.sortedIndices
 }
 
-// Drawablesを取得する
+// Get the drawables
 func (m *Model) GetDrawables() []Drawable {
 	return m.drawables
 }
 
-// 指定したIDのDrawableを取得する
+// Get the Drawable with the specified ID
 func (m *Model) GetDrawable(id string) (d Drawable, err error) {
 	if d, ok := m.drawablesMap[id]; ok {
 		return d, nil
@@ -82,27 +82,27 @@ func (m *Model) GetDrawable(id string) (d Drawable, err error) {
 	return
 }
 
-// ヒットエリアの一覧を取得する
+// Get the list of hit areas
 func (m *Model) GetHitAreas() []model.HitArea {
 	return m.hitAreas
 }
 
-// パラメータの一覧を取得する
+// Get the list of parameters
 func (m *Model) GetParameters() []parameter.Parameter {
 	return m.core.GetParameters(m.moc.ModelPtr)
 }
 
-// パラメータの値を取得する
+// Get the value of the parameter
 func (m *Model) GetParameterValue(id string) float32 {
 	return m.core.GetParameterValue(m.moc.ModelPtr, id)
 }
 
-// パラメータの値を設定する
+// Set the value of the parameter
 func (m *Model) SetParameterValue(id string, value float32) {
 	m.core.SetParameterValue(m.moc.ModelPtr, id, value)
 }
 
-// モーションのグループ名の一覧を取得する
+// Get the list of motion group names
 func (m *Model) GetMotionGroupNames() (names []string) {
 	for k := range m.motions {
 		names = append(names, k)
@@ -110,12 +110,12 @@ func (m *Model) GetMotionGroupNames() (names []string) {
 	return
 }
 
-// グループに含まれるモーションの一覧を取得する
+// Get the list of motions in the group
 func (m *Model) GetMotions(groupName string) []motion.Motion {
 	return m.motions[groupName]
 }
 
-// モーションを再生する
+// Play a motion
 func (m *Model) PlayMotion(groupName string, index int, loop bool) (id int) {
 	if m.motionManager == nil {
 		m.motionManager = motion.NewMotionManager(m.core, m.moc.ModelPtr, func(id int) {
@@ -135,7 +135,7 @@ func (m *Model) PlayMotion(groupName string, index int, loop bool) (id int) {
 	return
 }
 
-// モーションを停止する
+// Stop a motion
 func (m *Model) StopMotion(id int) {
 	for i, loopId := range m.loopMotions {
 		if id == loopId {
@@ -146,7 +146,7 @@ func (m *Model) StopMotion(id int) {
 	m.motionManager.Close(id)
 }
 
-// 自動まばたきを有効にする
+// Enable Auto Blink
 func (m *Model) EnableAutoBlink() {
 	for _, group := range m.groups {
 		if group.Name == "EyeBlink" {
@@ -156,12 +156,12 @@ func (m *Model) EnableAutoBlink() {
 	}
 }
 
-// 自動まばたきを無効にする
+// Disable Auto Blink
 func (m *Model) DisableAutoBlink() {
 	m.blinkManager = nil
 }
 
-// モデルを更新する
+// Update the model
 func (m *Model) Update(delta float64) {
 	if m.motionManager != nil {
 		m.motionManager.Update(delta)
@@ -171,10 +171,10 @@ func (m *Model) Update(delta float64) {
 	}
 	m.core.Update(m.moc.ModelPtr)
 
-	// 更新された動的フラグを取得
+	// Get the updated dynamic flags
 	dfs := m.core.GetDynamicFlags(m.moc.ModelPtr)
 
-	// 更新すべき対象が無いかフラグを舐めて確認する
+	// Check the flags to confirm if there are any targets that need to be updated.
 	drawOrderDidChange := false
 	renderOrderDidChange := false
 	opacityDidChange := false
@@ -201,21 +201,21 @@ func (m *Model) Update(delta float64) {
 		*/
 	}
 
-	// 描画順の更新
+	// Update the drawing order
 	if drawOrderDidChange || renderOrderDidChange {
 		m.sortedIndices = m.core.GetSortedDrawableIndices(m.moc.ModelPtr)
 	}
-	// 透明度の更新
+	// Update the opacities
 	var opacities []float32
 	if opacityDidChange {
 		opacities = m.core.GetOpacities(m.moc.ModelPtr)
 	}
-	// 頂点の更新
+	// Update the vertex positions
 	var vertexPositions [][]drawable.Vector2
 	if vertexPositionsDidChange {
 		vertexPositions = m.core.GetVertexPositions(m.moc.ModelPtr)
 	}
-	// 乗算色・スクリーン色の更新
+	// Update the multiplication color and screen color
 	// TODO impl
 
 	for i := range m.drawables {

@@ -2,14 +2,14 @@ package utils
 
 import "fmt"
 
-// バージョン情報を文字列に変換する
+// Convert version information to a string
 func ParseVersion(v uint32) string {
-	// メジャーバージョン1byte, マイナーバージョン1byte, パッチバージョン2byte
-	// 上位8ビット
+	// Major version: 1 byte, Minor version: 1 byte, Patch version: 2 bytes
+	// Upper 8 bits
 	major := v >> 24
-	// 次の8ビット
+	// Next 8 bits
 	minor := (v >> 16) & 0xff
-	// 下位16ビット
+	// Lower 16 bits
 	patch := v & 0xffff
 	return fmt.Sprintf("%d.%d.%d", major, minor, patch)
 }

@@ -1,6 +1,6 @@
 package model
 
-// *.pose3.json用の構造体
+// struct for *.pose3.json files
 type PoseJson struct {
 	Type       string  `json:"Type"`
 	FadeInTime float64 `json:"FadeInTime"`

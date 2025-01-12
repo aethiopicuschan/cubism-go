@@ -13,48 +13,49 @@ import (
 )
 
 /*
-cubism-goの本体
+The main body of cubism-go
 */
 type Cubism struct {
 	core core.Core
-	// 音声ファイルを読み込む関数
+	// A function to load audio files
 	LoadSound func(fp string) (s sound.Sound, err error)
 }
 
+// Constructor for the [Cubism] struct
 func NewCubism(lib string) (c Cubism, err error) {
 	c.core, err = core.NewCore(lib)
 	return
 }
 
-// model3.jsonからモデルを読み込む
+// Load a model from model3.json
 func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 	m = &Model{
 		core:    c.core,
 		opacity: 1.0,
 	}
 
-	// 絶対パスを取得
+	// Get the absolute path
 	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return
 	}
-	// ディレクトリを取得
+	// Get the directory
 	dir := filepath.Dir(absPath)
 
-	// model3.jsonを読み込む
+	// Read model3.json
 	buf, err := os.ReadFile(absPath)
 	if err != nil {
 		return
 	}
-	// バージョン3に対応した構造体にする
+	// Convert to a structure compatible with version 3
 	var mj model.ModelJson
 	if err = json.Unmarshal(buf, &mj); err != nil {
 		return
 	}
 
-	// バージョン情報
+	// Get the version information
 	m.version = mj.Version
-	// テクスチャ画像のパスを絶対パスにする
+	// Convert the path of the texture image to an absolute path
 	m.textures = mj.FileReferences.Textures
 	for i := range m.textures {
 		m.textures[i] = filepath.Join(dir, m.textures[i])
@@ -63,13 +64,13 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 	m.groups = mj.Groups
 	m.hitAreas = mj.HitAreas
 
-	// moc3ファイルを読み込む
+	// Load the moc3 file
 	moc3Path := filepath.Join(dir, mj.FileReferences.Moc)
 	m.moc, err = c.core.LoadMoc(moc3Path)
 	if err != nil {
 		return
 	}
-	// Drawablesを取得
+	// Get the Drawables
 	ds := c.core.GetDrawables(m.moc.ModelPtr)
 	for _, d := range ds {
 		m.drawables = append(m.drawables, Drawable{
@@ -84,15 +85,15 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 			Masks:           d.Masks,
 		})
 	}
-	// Drawablesのmapを作成
+	// Create map of Drawables
 	m.drawablesMap = map[string]Drawable{}
 	for _, d := range m.drawables {
 		m.drawablesMap[d.Id] = d
 	}
-	// ソート済みインデックスを取得
+	// Get the sorted indices
 	m.sortedIndices = c.core.GetSortedDrawableIndices(m.moc.ModelPtr)
 
-	// 物理演算の設定を読み込む(あれば)
+	// Load the physics settings if they exist
 	if mj.FileReferences.Physics != "" {
 		physicsPath := filepath.Join(dir, mj.FileReferences.Physics)
 		buf, err = os.ReadFile(physicsPath)
@@ -104,7 +105,7 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 		}
 	}
 
-	// ポーズの設定を読み込む(あれば)
+	// Load the pose settings if they exist
 	if mj.FileReferences.Pose != "" {
 		posePath := filepath.Join(dir, mj.FileReferences.Pose)
 		buf, err = os.ReadFile(posePath)
@@ -116,7 +117,7 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 		}
 	}
 
-	// 表示補助の設定を読み込む(あれば)
+	// Load the display info settings if they exist
 	if mj.FileReferences.DisplayInfo != "" {
 		displayInfoPath := filepath.Join(dir, mj.FileReferences.DisplayInfo)
 		buf, err = os.ReadFile(displayInfoPath)
@@ -128,7 +129,7 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 		}
 	}
 
-	// 表情の設定を読み込む
+	// Load the expressions
 	for _, exp := range mj.FileReferences.Expressions {
 		expPath := filepath.Join(dir, exp.File)
 		buf, err = os.ReadFile(expPath)
@@ -143,7 +144,7 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 		m.exps = append(m.exps, e)
 	}
 
-	// モーションの設定を読み込む
+	// Load the motion settings
 	m.motions = map[string][]motion.Motion{}
 	for name, motions := range mj.FileReferences.Motions {
 		m.motions[name] = []motion.Motion{}
@@ -161,7 +162,7 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 			motion := mtnJson.ToMotion(fp, motion.FadeInTime, motion.FadeOutTime, motion.Sound)
 			if motion.Sound != "" {
 				soundPath := filepath.Join(dir, motion.Sound)
-				// もしLoadSoundがnilなら音声は流さない
+				// If LoadSound is nil, don't play the sound
 				if c.LoadSound == nil {
 					motion.LoadedSound, err = disabled.LoadSound(soundPath)
 				} else {
@@ -175,7 +176,7 @@ func (c *Cubism) LoadModel(path string) (m *Model, err error) {
 		}
 	}
 
-	// ユーザデータを読み込む(あれば)
+	// Load user data if it exists
 	if mj.FileReferences.UserData != "" {
 		userDataPath := filepath.Join(dir, mj.FileReferences.UserData)
 		buf, err = os.ReadFile(userDataPath)

@@ -1,6 +1,6 @@
 package model
 
-// *.cdi3.json用の構造体
+// struct for *.cdi3.json files
 type CdiJson struct {
 	Version    int `json:"Version"`
 	Parameters []struct {

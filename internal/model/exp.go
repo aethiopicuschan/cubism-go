@@ -1,6 +1,6 @@
 package model
 
-// *.exp3.json用の構造体
+// struct for *.exp3.json files
 type ExpJson struct {
 	Name       string
 	Type       string `json:"Type"`

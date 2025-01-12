@@ -8,7 +8,7 @@ type Meta struct {
 	AreBeziersRestricted bool    `json:"AreBeziersRestricted"`
 }
 
-// *.motion3.json用の構造体
+// struct for *.motion3.json files
 type MotionJson struct {
 	Version  int  `json:"Version"`
 	Meta     Meta `json:"Meta"`
@@ -25,7 +25,7 @@ type MotionJson struct {
 	} `json:"Curves"`
 }
 
-// motion3.jsonをMotionに変換する
+// Convert motion3.json to Motion
 func (m *MotionJson) ToMotion(fp string, fadein, fadeout float64, sound string) (mtn motion.Motion) {
 	mtn = motion.Motion{
 		File:        fp,

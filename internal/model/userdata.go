@@ -1,6 +1,6 @@
 package model
 
-// *.userdata3.json用の構造体
+// struct for *.userdata3.json files
 type UserDataJson struct {
 	Version int `json:"Version"`
 	Meta    struct {

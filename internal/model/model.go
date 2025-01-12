@@ -1,6 +1,6 @@
 package model
 
-// *.model3.json用の構造体
+// struct for *.model3.json files
 type ModelJson struct {
 	Version        int `json:"Version"`
 	FileReferences struct {
