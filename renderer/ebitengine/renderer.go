@@ -16,21 +16,26 @@ import (
 //go:embed  mask.kage
 var maskShaderSrc []byte
 
+//go:embed mask-inverted.kage
+var maskShaderSrcInverted []byte
+
 type Renderer struct {
-	fb, mb, surface *ebiten.Image
-	textureMap      map[string]*ebiten.Image
-	model           *cubism.Model
-	drawables       []cubism.Drawable
-	vertices        [][]ebiten.Vertex
-	maskShader      *ebiten.Shader
-	final           image.Rectangle
+	fb, mb, surface          *ebiten.Image
+	textureMap               map[string]*ebiten.Image
+	model                    *cubism.Model
+	drawables                []cubism.Drawable
+	vertices                 [][]ebiten.Vertex
+	maskShader               *ebiten.Shader
+	maskShaderInverted       *ebiten.Shader
+	final                    image.Rectangle
+	sizeXInUnit, sizeYInUnit float32
 }
 
 // Constructor for the [Renderer] struct
 func NewRenderer(model *cubism.Model) (r *Renderer, err error) {
 	modelPtr := model.GetMoc().ModelPtr
 	core := model.GetCore()
-	size, _, _ := core.GetCanvasInfo(modelPtr)
+	size, _, pixelsPerUnit := core.GetCanvasInfo(modelPtr)
 	m := make(map[string]*ebiten.Image)
 	ts := model.GetTextures()
 	for _, t := range ts {
@@ -44,13 +49,20 @@ func NewRenderer(model *cubism.Model) (r *Renderer, err error) {
 	if err != nil {
 		return
 	}
+	shaderInverted, err := ebiten.NewShader(maskShaderSrcInverted)
+	if err != nil {
+		return
+	}
 	r = &Renderer{
-		fb:         ebiten.NewImage(int(size.X), int(size.Y)),
-		mb:         ebiten.NewImage(int(size.X), int(size.Y)),
-		surface:    ebiten.NewImage(int(size.X), int(size.Y)),
-		textureMap: m,
-		model:      model,
-		maskShader: shader,
+		fb:                 ebiten.NewImage(int(size.X), int(size.Y)),
+		mb:                 ebiten.NewImage(int(size.X), int(size.Y)),
+		surface:            ebiten.NewImage(int(size.X), int(size.Y)),
+		textureMap:         m,
+		model:              model,
+		maskShader:         shader,
+		maskShaderInverted: shaderInverted,
+		sizeXInUnit:        size.X / pixelsPerUnit,
+		sizeYInUnit:        size.Y / pixelsPerUnit,
 	}
 	return
 }
@@ -130,27 +142,34 @@ func (r *Renderer) Draw(screen *ebiten.Image, opts ...func(*DrawOption)) {
 		o(opt)
 	}
 
+	if opt.hidden {
+		return
+	}
+
 	last_options := &ebiten.DrawImageOptions{}
 	// First, adjust to the screen size
 	screenWidth, screenHeight := float64(screen.Bounds().Dx()), float64(screen.Bounds().Dy())
 	surfaceWidth, surfaceHeight := float64(r.surface.Bounds().Dx()), float64(r.surface.Bounds().Dy())
-	last_options.GeoM.Scale(screenHeight/screenWidth, 1)
-	last_options.GeoM.Scale(screenWidth/surfaceWidth, screenHeight/surfaceHeight)
+	last_options.GeoM.Scale(2/float64(r.sizeYInUnit), 2/float64(r.sizeYInUnit))
+	if r.sizeXInUnit > 1.0 && screenWidth < screenHeight {
+		last_options.GeoM.Scale(2/float64(r.sizeXInUnit), 2/float64(r.sizeXInUnit))
+		last_options.GeoM.Scale(1, screenWidth/screenHeight)
+	} else {
+		last_options.GeoM.Scale(screenHeight/screenWidth, 1)
+	}
+
 	// Apply the scale options
 	last_options.GeoM.Scale(opt.scale, opt.scale)
+
 	// Align the horizontal axis to the center
-	width := screenWidth * (screenHeight / screenWidth) * opt.scale
-	height := screenHeight * opt.scale
-	x := screenWidth/2 - width/2 + opt.x
-	y := screenHeight/2 - height/2 + opt.y
+	width, height := last_options.GeoM.Apply(surfaceWidth, surfaceHeight)
+	x := screenWidth/2 - width/2
+	y := screenHeight/2 - height/2
 	last_options.GeoM.Translate(x, y)
 	r.final = image.Rect(int(x), int(y), int(x+width), int(y+height))
 	// Set Alpha
 	last_options.ColorScale.SetA(r.model.GetOpacity())
-
-	if opt.hidden {
-		return
-	}
+	last_options.Filter = ebiten.FilterLinear
 
 	r.surface.Fill(opt.background)
 	sortedIndices := r.model.GetSortedIndices()
@@ -169,25 +188,38 @@ func (r *Renderer) Draw(screen *ebiten.Image, opts ...func(*DrawOption)) {
 				if !mask.DynamicFlag.VertexPositionsDidChange {
 					continue
 				}
-				maskOptions := &colorm.DrawTrianglesOptions{}
+				maskOptions := &colorm.DrawTrianglesOptions{
+					AntiAlias: true,
+					Filter:    ebiten.FilterLinear,
+				}
 				maskColorM := colorm.ColorM{}
 				maskColorM.Scale(0, 0, 0, 1)
-				maskOptions.AntiAlias = true
 				colorm.DrawTriangles(r.mb, r.vertices[maskIndex], mask.VertexIndices, r.textureMap[mask.Texture], maskColorM, maskOptions)
 				changed = true
 			}
 			if changed {
-				r.fb.DrawTriangles(vertices, d.VertexIndices, r.textureMap[d.Texture], &ebiten.DrawTrianglesOptions{})
+				colorM := colorm.ColorM{}
+				colorM.Scale(1, 1, 1, float64(d.Opacity))
+				colorm.DrawTriangles(r.fb, vertices, d.VertexIndices, r.textureMap[d.Texture], colorM, &colorm.DrawTrianglesOptions{
+					AntiAlias: true,
+					Filter:    ebiten.FilterLinear,
+				})
+
 				options := &ebiten.DrawRectShaderOptions{}
 				options.Images[0] = r.mb
 				options.Images[1] = r.fb
-				r.surface.DrawRectShader(r.fb.Bounds().Dx(), r.fb.Bounds().Dy(), r.maskShader, options)
+				if d.ConstantFlag.IsInvertedMask {
+					r.surface.DrawRectShader(r.fb.Bounds().Dx(), r.fb.Bounds().Dy(), r.maskShaderInverted, options)
+				} else {
+					r.surface.DrawRectShader(r.fb.Bounds().Dx(), r.fb.Bounds().Dy(), r.maskShader, options)
+				}
 			}
 		} else {
 			colorM := colorm.ColorM{}
 			colorM.Scale(1, 1, 1, float64(d.Opacity))
 			options := &colorm.DrawTrianglesOptions{}
 			options.AntiAlias = true
+			options.Filter = ebiten.FilterLinear
 			colorm.DrawTriangles(r.surface, vertices, d.VertexIndices, r.textureMap[d.Texture], colorM, options)
 		}
 	}

@@ -8,5 +8,5 @@ func Fragment(dstPos vec4, srcPos vec2, col vec4) vec4 {
 
     maskVal := maskBuffer.r + maskBuffer.g + maskBuffer.b + maskBuffer.a
 
-    return frameBuffer * maskVal
+    return frameBuffer * (1.0 - maskVal)
 }
