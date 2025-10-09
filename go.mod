@@ -18,7 +18,10 @@ require (
 	github.com/ebitengine/hideconsole v1.0.0 // indirect
 	github.com/hajimehoshi/go-mp3 v0.3.4 // indirect
 	github.com/hajimehoshi/oto v1.0.1 // indirect
+	github.com/icza/bitio v1.0.0 // indirect
 	github.com/jezek/xgb v1.1.1 // indirect
+	github.com/mewkiz/flac v1.0.7 // indirect
+	github.com/mewkiz/pkg v0.0.0-20190919212034-518ade7978e2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/exp/shiny v0.0.0-20240909161429-701f63a606c0 // indirect

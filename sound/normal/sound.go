@@ -10,6 +10,7 @@ import (
 
 	"github.com/aethiopicuschan/cubism-go/sound"
 	"github.com/faiface/beep"
+	"github.com/faiface/beep/flac"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/speaker"
 	"github.com/faiface/beep/wav"
@@ -53,6 +54,8 @@ func (s *Sound) Decode(fp string, buf []byte) (err error) {
 		s.streamer, s.format, err = wav.Decode(bytes.NewReader(buf))
 	case "mp3":
 		s.streamer, s.format, err = mp3.Decode(nopCloser{bytes.NewReader(buf)})
+	case "flac":
+		s.streamer, s.format, err = flac.Decode(bytes.NewReader(buf))
 	default:
 		err = fmt.Errorf("unsupported format: %s", f)
 		return
@@ -86,6 +89,8 @@ func detectFormat(fp string) (f string, err error) {
 		f = "wav"
 	case ".mp3":
 		f = "mp3"
+	case ".flac":
+		f = "flac"
 	default:
 		err = fmt.Errorf("unsupported format: %s", ext)
 	}
