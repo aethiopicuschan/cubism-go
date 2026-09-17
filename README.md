@@ -2,7 +2,6 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen?style=flat-square)](/LICENSE)
 [![Go Reference](https://pkg.go.dev/badge/github.com/aethiopicuschan/cubism-go.svg)](https://pkg.go.dev/github.com/aethiopicuschan/cubism-go)
-[![Go Report Card](https://goreportcard.com/badge/github.com/aethiopicuschan/cubism-go)](https://goreportcard.com/report/github.com/aethiopicuschan/cubism-go)
 [![CI](https://github.com/aethiopicuschan/cubism-go/actions/workflows/ci.yaml/badge.svg)](https://github.com/aethiopicuschan/cubism-go/actions/workflows/ci.yaml)
 
 cubism-go is an unofficial Golang implementation of the [Live2D Cubism SDK](https://www.live2d.com/sdk/about/). It leverages [ebitengine/purego](https://github.com/ebitengine/purego), making it easy to use.
