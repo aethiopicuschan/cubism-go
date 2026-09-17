@@ -14,6 +14,7 @@ go get -u github.com/aethiopicuschan/cubism-go
 
 ## 動作に必要なもの
 
+- Go 1.27.1以降
 - cubism coreの動的ライブラリ
 - Live2Dモデル
 
@@ -36,6 +37,10 @@ exampleディレクトリにサンプルコードがあります。おおむね�
 こちらも自身で実装することが可能です。
 
 ## 開発時のこと
+
+描画テストにはディスプレイが必要です。ヘッドレスLinux環境では、
+`.github/workflows/ci.yaml` に記載されたネイティブ依存関係に加えて
+`xvfb` と `xauth` をインストールし、`xvfb-run -a go test ./...` を実行してください。
 
 `pre-commit`フックのために[lefthook](https://github.com/evilmartians/lefthook)を利用しています。内容は以下の通りです。
 

@@ -14,6 +14,7 @@ go get -u github.com/aethiopicuschan/cubism-go
 
 ## Requirements
 
+- Go 1.27.1 or later
 - Dynamic library for Cubism Core
 - Live2D model
 
@@ -36,6 +37,10 @@ Moreover, there are several implementations available for audio playback:
 You can also implement your own version of these.
 
 ## Development
+
+Renderer tests require a display. On headless Linux, install `xvfb` and `xauth`
+alongside the native dependencies listed in `.github/workflows/ci.yaml`, then run
+`xvfb-run -a go test ./...`.
 
 For `pre-commit` hooks, we use [lefthook](https://github.com/evilmartians/lefthook). The configured tools include:
 

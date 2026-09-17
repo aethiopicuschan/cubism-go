@@ -1,8 +1,6 @@
 module github.com/aethiopicuschan/cubism-go
 
-go 1.22.0
-
-toolchain go1.22.6
+go 1.27.1
 
 require (
 	github.com/ebitengine/purego v0.7.1
