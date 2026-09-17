@@ -18,6 +18,10 @@ go get -u github.com/aethiopicuschan/cubism-go
 - cubism coreの動的ライブラリ
 - Live2Dモデル
 
+Core 5.x・6.xはライブラリのバージョンから自動選択されます。
+Core 6対応は既存のCoreインターフェースの範囲です。新しいブレンドモードと
+オフスクリーン合成は未実装で、オフスクリーンを使用するモデルは読み込み時にエラーを返します。
+
 ## 使い方
 
 exampleディレクトリにサンプルコードがあります。おおむね全ての機能を利用したものとなっているので、[Go Reference](https://pkg.go.dev/github.com/aethiopicuschan/cubism-go)と合わせて参照してください。

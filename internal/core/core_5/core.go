@@ -50,6 +50,12 @@ type Core struct {
 }
 
 func NewCore(lib uintptr) (c *Core, err error) {
+	return NewCoreWithRenderOrders(lib, "csmGetDrawableRenderOrders")
+}
+
+// NewCoreWithRenderOrders binds the shared Core API with a version-specific
+// render-order symbol. Core 6 renamed this API to csmGetRenderOrders.
+func NewCoreWithRenderOrders(lib uintptr, renderOrdersSymbol string) (c *Core, err error) {
 	c = new(Core)
 	c.lib = lib
 	purego.RegisterLibFunc(&c.csmGetVersion, lib, "csmGetVersion")
@@ -73,7 +79,7 @@ func NewCore(lib uintptr) (c *Core, err error) {
 	purego.RegisterLibFunc(&c.csmGetDrawableConstantFlags, lib, "csmGetDrawableConstantFlags")
 	purego.RegisterLibFunc(&c.csmGetDrawableDynamicFlags, lib, "csmGetDrawableDynamicFlags")
 	purego.RegisterLibFunc(&c.csmGetDrawableTextureIndices, lib, "csmGetDrawableTextureIndices")
-	purego.RegisterLibFunc(&c.csmGetDrawableRenderOrders, lib, "csmGetDrawableRenderOrders")
+	purego.RegisterLibFunc(&c.csmGetDrawableRenderOrders, lib, renderOrdersSymbol)
 	purego.RegisterLibFunc(&c.csmGetDrawableOpacities, lib, "csmGetDrawableOpacities")
 	purego.RegisterLibFunc(&c.csmGetDrawableMaskCounts, lib, "csmGetDrawableMaskCounts")
 	purego.RegisterLibFunc(&c.csmGetDrawableMasks, lib, "csmGetDrawableMasks")

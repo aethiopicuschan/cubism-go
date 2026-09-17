@@ -18,6 +18,10 @@ go get -u github.com/aethiopicuschan/cubism-go
 - Dynamic library for Cubism Core
 - Live2D model
 
+Core 5.x and 6.x libraries are selected automatically by their version.
+Core 6 support covers the existing Core interface; new blend modes and offscreen
+composition are not implemented. Models using offscreens return a load error.
+
 ## Usage
 
 Sample code is available in the `example` directory. It demonstrates the use of almost all functionalities, so please refer to it alongside the [Go Reference](https://pkg.go.dev/github.com/aethiopicuschan/cubism-go).

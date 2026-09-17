@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	core_5 "github.com/aethiopicuschan/cubism-go/internal/core/core_5"
+	core_6 "github.com/aethiopicuschan/cubism-go/internal/core/core_6"
 	"github.com/aethiopicuschan/cubism-go/internal/core/drawable"
 	"github.com/aethiopicuschan/cubism-go/internal/core/minimum"
 	"github.com/aethiopicuschan/cubism-go/internal/core/moc"
@@ -38,9 +39,12 @@ func NewCore(lib string) (c Core, err error) {
 		return
 	}
 	version := mc.GetVersion()
-	// Cubism 5 API is stable across the whole 5.x.x range, so this check unnecessarily rejects all newer 5.x.x versions that do work fine with the existing bindings.
-	if strings.HasPrefix(version, "5.") {
+	switch {
+	case strings.HasPrefix(version, "5."):
 		c, err = core_5.NewCore(l)
+		return
+	case strings.HasPrefix(version, "6."):
+		c, err = core_6.NewCore(l)
 		return
 	}
 	err = fmt.Errorf("unsupported version: %s", version)
