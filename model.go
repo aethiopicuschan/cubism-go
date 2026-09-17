@@ -2,6 +2,7 @@ package cubism
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/aethiopicuschan/cubism-go/internal/blink"
 	"github.com/aethiopicuschan/cubism-go/internal/core"
@@ -119,11 +120,9 @@ func (m *Model) GetMotions(groupName string) []motion.Motion {
 func (m *Model) PlayMotion(groupName string, index int, loop bool) (id int) {
 	if m.motionManager == nil {
 		m.motionManager = motion.NewMotionManager(m.core, m.moc.ModelPtr, func(id int) {
-			for _, loopId := range m.loopMotions {
-				if id == loopId {
-					m.motionManager.Reset(id)
-					return
-				}
+			if slices.Contains(m.loopMotions, id) {
+				m.motionManager.Reset(id)
+				return
 			}
 			m.motionManager.Close(id)
 		})
