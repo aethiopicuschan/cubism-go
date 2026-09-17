@@ -5,13 +5,14 @@ pre-commit:
       run: staticcheck ./...
     go-modernize:
       run: |
-        pkgs=$(go list ./... | grep -vE '(^|/)(gen)($|/)')
-        modernize -errorsastype=false $pkgs
+        modernize ./...
     go-mod:
       run: go mod tidy -diff
     go-mod-verify:
       run: go mod verify > /dev/null
     go-fmt:
       run: go fmt ./...
+    go-vet:
+      run: go vet ./...
     typos:
       run: typos

@@ -22,29 +22,29 @@ type Core struct {
 	csmUpdateModel                func(uintptr)
 	csmReadCanvasInfo             func(uintptr, uintptr, uintptr, uintptr)
 	csmGetParameterCount          func(uintptr) int
-	csmGetParameterIds            func(uintptr) uintptr
-	csmGetParameterTypes          func(uintptr) uintptr
-	csmGetParameterMinimumValues  func(uintptr) uintptr
-	csmGetParameterMaximumValues  func(uintptr) uintptr
-	csmGetParameterDefaultValues  func(uintptr) uintptr
-	csmGetParameterValues         func(uintptr) uintptr
+	csmGetParameterIds            func(uintptr) **byte
+	csmGetParameterTypes          func(uintptr) *int32
+	csmGetParameterMinimumValues  func(uintptr) *float32
+	csmGetParameterMaximumValues  func(uintptr) *float32
+	csmGetParameterDefaultValues  func(uintptr) *float32
+	csmGetParameterValues         func(uintptr) *float32
 	csmGetPartCount               func(uintptr) int
-	csmGetPartIds                 func(uintptr) uintptr
-	csmGetPartOpacities           func(uintptr) uintptr
+	csmGetPartIds                 func(uintptr) **byte
+	csmGetPartOpacities           func(uintptr) *float32
 	csmGetDrawableCount           func(uintptr) int
-	csmGetDrawableIds             func(uintptr) uintptr
-	csmGetDrawableConstantFlags   func(uintptr) uintptr
-	csmGetDrawableDynamicFlags    func(uintptr) uintptr
-	csmGetDrawableTextureIndices  func(uintptr) uintptr
-	csmGetDrawableRenderOrders    func(uintptr) uintptr
-	csmGetDrawableOpacities       func(uintptr) uintptr
-	csmGetDrawableMaskCounts      func(uintptr) uintptr
-	csmGetDrawableMasks           func(uintptr) uintptr
-	csmGetDrawableVertexCounts    func(uintptr) uintptr
-	csmGetDrawableVertexPositions func(uintptr) uintptr
-	csmGetDrawableVertexUvs       func(uintptr) uintptr
-	csmGetDrawableIndexCounts     func(uintptr) uintptr
-	csmGetDrawableIndices         func(uintptr) uintptr
+	csmGetDrawableIds             func(uintptr) **byte
+	csmGetDrawableConstantFlags   func(uintptr) *uint8
+	csmGetDrawableDynamicFlags    func(uintptr) *uint8
+	csmGetDrawableTextureIndices  func(uintptr) *int32
+	csmGetDrawableRenderOrders    func(uintptr) *int32
+	csmGetDrawableOpacities       func(uintptr) *float32
+	csmGetDrawableMaskCounts      func(uintptr) *int32
+	csmGetDrawableMasks           func(uintptr) **int32
+	csmGetDrawableVertexCounts    func(uintptr) *int32
+	csmGetDrawableVertexPositions func(uintptr) **drawable.Vector2
+	csmGetDrawableVertexUvs       func(uintptr) **drawable.Vector2
+	csmGetDrawableIndexCounts     func(uintptr) *int32
+	csmGetDrawableIndices         func(uintptr) **uint16
 	csmResetDrawableDynamicFlags  func(uintptr)
 	csmHasMocConsistency          func(uintptr, uint) int
 }
@@ -132,7 +132,7 @@ func (c *Core) GetVersion() string {
 // Get dynamic flags
 func (c *Core) GetDynamicFlags(modelPtr uintptr) (rs []drawable.DynamicFlag) {
 	count := c.csmGetDrawableCount(modelPtr)
-	raw := unsafe.Slice((*uint8)(unsafe.Pointer(c.csmGetDrawableDynamicFlags(modelPtr))), count)
+	raw := unsafe.Slice(c.csmGetDrawableDynamicFlags(modelPtr), count)
 	for _, flag := range raw {
 		rs = append(rs, drawable.ParseDynamicFlag(flag))
 	}
@@ -142,7 +142,7 @@ func (c *Core) GetDynamicFlags(modelPtr uintptr) (rs []drawable.DynamicFlag) {
 // Get opacities
 func (c *Core) GetOpacities(modelPtr uintptr) (rs []float32) {
 	count := c.csmGetDrawableCount(modelPtr)
-	rs = unsafe.Slice((*float32)(unsafe.Pointer(c.csmGetDrawableOpacities(modelPtr))), count)
+	rs = unsafe.Slice(c.csmGetDrawableOpacities(modelPtr), count)
 	return
 }
 
@@ -150,11 +150,11 @@ func (c *Core) GetOpacities(modelPtr uintptr) (rs []float32) {
 func (c *Core) GetVertexPositions(modelPtr uintptr) (vps [][]drawable.Vector2) {
 	count := c.csmGetDrawableCount(modelPtr)
 	// 頂点の数
-	vertexCounts := unsafe.Slice((*int32)(unsafe.Pointer(c.csmGetDrawableVertexCounts(modelPtr))), count)
-	posPtr := c.csmGetDrawableVertexPositions(modelPtr)
-	for i := 0; i < count; i++ {
+	vertexCounts := unsafe.Slice(c.csmGetDrawableVertexCounts(modelPtr), count)
+	posPtrs := unsafe.Slice(c.csmGetDrawableVertexPositions(modelPtr), count)
+	for i := range count {
 		vertexCount := vertexCounts[i]
-		positions := unsafe.Slice(*(**drawable.Vector2)(unsafe.Pointer(posPtr + uintptr(i)*unsafe.Sizeof(uintptr(0)))), int(vertexCount))
+		positions := unsafe.Slice(posPtrs[i], int(vertexCount))
 		vps = append(vps, positions)
 	}
 	return
@@ -166,61 +166,60 @@ func (c *Core) GetDrawables(modelPtr uintptr) (ds []drawable.Drawable) {
 	count := c.csmGetDrawableCount(modelPtr)
 
 	constantFlags := make([]drawable.ConstantFlag, 0)
-	raw := unsafe.Slice((*uint8)(unsafe.Pointer(c.csmGetDrawableConstantFlags(modelPtr))), count)
+	raw := unsafe.Slice(c.csmGetDrawableConstantFlags(modelPtr), count)
 	for _, flag := range raw {
 		constantFlags = append(constantFlags, drawable.ParseConstantFlag(flag))
 	}
 
 	dynamicFlags := c.GetDynamicFlags(modelPtr)
 
-	textureIndices := unsafe.Slice((*int32)(unsafe.Pointer(c.csmGetDrawableTextureIndices(modelPtr))), count)
+	textureIndices := unsafe.Slice(c.csmGetDrawableTextureIndices(modelPtr), count)
 
 	opacities := c.GetOpacities(modelPtr)
 
-	vertexCounts := unsafe.Slice((*int32)(unsafe.Pointer(c.csmGetDrawableVertexCounts(modelPtr))), count)
+	vertexCounts := unsafe.Slice(c.csmGetDrawableVertexCounts(modelPtr), count)
 
 	vertexPositions := make([][]drawable.Vector2, 0)
 	vertexUvs := make([][]drawable.Vector2, 0)
-	posPtr := c.csmGetDrawableVertexPositions(modelPtr)
-	uvPtr := c.csmGetDrawableVertexUvs(modelPtr)
-	for i := 0; i < count; i++ {
+	posPtrs := unsafe.Slice(c.csmGetDrawableVertexPositions(modelPtr), count)
+	uvPtrs := unsafe.Slice(c.csmGetDrawableVertexUvs(modelPtr), count)
+	for i := range count {
 		vertexCount := vertexCounts[i]
-		positions := unsafe.Slice(*(**drawable.Vector2)(unsafe.Pointer(posPtr + uintptr(i)*unsafe.Sizeof(uintptr(0)))), int(vertexCount))
+		positions := unsafe.Slice(posPtrs[i], int(vertexCount))
 		vertexPositions = append(vertexPositions, positions)
-		uvs := unsafe.Slice(*(**drawable.Vector2)(unsafe.Pointer(uvPtr + uintptr(i)*unsafe.Sizeof(uintptr(0)))), int(vertexCount))
+		uvs := unsafe.Slice(uvPtrs[i], int(vertexCount))
 		vertexUvs = append(vertexUvs, uvs)
 	}
 
 	// Size of the array of corresponding numbers for the polygon
-	indexCounts := unsafe.Slice((*int32)(unsafe.Pointer(c.csmGetDrawableIndexCounts(modelPtr))), count)
+	indexCounts := unsafe.Slice(c.csmGetDrawableIndexCounts(modelPtr), count)
 	// Array of corresponding numbers for the polygon
 	indices := make([][]uint16, 0)
-	indicesPtr := c.csmGetDrawableIndices(modelPtr)
-	for i := 0; i < count; i++ {
+	indicesPtrs := unsafe.Slice(c.csmGetDrawableIndices(modelPtr), count)
+	for i := range count {
 		indexCount := indexCounts[i]
-		indices = append(indices, unsafe.Slice(*(**uint16)(unsafe.Pointer(indicesPtr + uintptr(i)*unsafe.Sizeof(uintptr(0)))), int(indexCount)))
+		indices = append(indices, unsafe.Slice(indicesPtrs[i], int(indexCount)))
 	}
 
 	// Number of masks
-	maskCounts := unsafe.Slice((*int32)(unsafe.Pointer(c.csmGetDrawableMaskCounts(modelPtr))), count)
+	maskCounts := unsafe.Slice(c.csmGetDrawableMaskCounts(modelPtr), count)
 	// Masks
 	masks := make([][]int32, 0)
-	maskPtr := c.csmGetDrawableMasks(modelPtr)
-	for i := 0; i < count; i++ {
+	maskPtrs := unsafe.Slice(c.csmGetDrawableMasks(modelPtr), count)
+	for i := range count {
 		maskCount := maskCounts[i]
-		masks = append(masks, unsafe.Slice(*(**int32)(unsafe.Pointer(maskPtr + uintptr(i)*unsafe.Sizeof(uintptr(0)))), int(maskCount)))
+		masks = append(masks, unsafe.Slice(maskPtrs[i], int(maskCount)))
 	}
 
 	// ID
-	idsPtr := c.csmGetDrawableIds(modelPtr)
+	idPtrs := unsafe.Slice(c.csmGetDrawableIds(modelPtr), count)
 	ids := make([]string, 0)
-	for i := 0; i < count; i++ {
-		ptr := *(**byte)(unsafe.Pointer(idsPtr + uintptr(i)*unsafe.Sizeof(uintptr(0))))
-		ids = append(ids, strings.GoString(uintptr(unsafe.Pointer(ptr))))
+	for i := range count {
+		ids = append(ids, strings.GoString(idPtrs[i]))
 	}
 
 	// Pack into a structure
-	for i := 0; i < count; i++ {
+	for i := range count {
 		d := drawable.Drawable{
 			Id:              ids[i],
 			Texture:         textureIndices[i],
@@ -240,19 +239,18 @@ func (c *Core) GetDrawables(modelPtr uintptr) (ds []drawable.Drawable) {
 // Get parameters
 func (c *Core) GetParameters(modelPtr uintptr) (parameters []parameter.Parameter) {
 	count := c.csmGetParameterCount(modelPtr)
-	idsPtr := c.csmGetParameterIds(modelPtr)
+	idPtrs := unsafe.Slice(c.csmGetParameterIds(modelPtr), count)
 	minPtr := c.csmGetParameterMinimumValues(modelPtr)
-	mins := unsafe.Slice((*float32)(unsafe.Pointer(minPtr)), count)
+	mins := unsafe.Slice(minPtr, count)
 	maxPtr := c.csmGetParameterMaximumValues(modelPtr)
-	maxs := unsafe.Slice((*float32)(unsafe.Pointer(maxPtr)), count)
+	maxs := unsafe.Slice(maxPtr, count)
 	defPtr := c.csmGetParameterDefaultValues(modelPtr)
-	defs := unsafe.Slice((*float32)(unsafe.Pointer(defPtr)), count)
+	defs := unsafe.Slice(defPtr, count)
 	valPtr := c.csmGetParameterValues(modelPtr)
-	vals := unsafe.Slice((*float32)(unsafe.Pointer(valPtr)), count)
-	for i := 0; i < count; i++ {
-		ptr := *(**byte)(unsafe.Pointer(idsPtr + uintptr(i)*unsafe.Sizeof(uintptr(0))))
+	vals := unsafe.Slice(valPtr, count)
+	for i := range count {
 		parameter := parameter.Parameter{
-			Id:      strings.GoString(uintptr(unsafe.Pointer(ptr))),
+			Id:      strings.GoString(idPtrs[i]),
 			Minimum: mins[i],
 			Maximum: maxs[i],
 			Default: defs[i],
@@ -266,12 +264,11 @@ func (c *Core) GetParameters(modelPtr uintptr) (parameters []parameter.Parameter
 // Get parameter value
 func (c *Core) GetParameterValue(modelPtr uintptr, id string) float32 {
 	count := c.csmGetParameterCount(modelPtr)
-	idsPtr := c.csmGetParameterIds(modelPtr)
+	idPtrs := unsafe.Slice(c.csmGetParameterIds(modelPtr), count)
 	valPtr := c.csmGetParameterValues(modelPtr)
-	vals := unsafe.Slice((*float32)(unsafe.Pointer(valPtr)), count)
-	for i := 0; i < count; i++ {
-		ptr := *(**byte)(unsafe.Pointer(idsPtr + uintptr(i)*unsafe.Sizeof(uintptr(0))))
-		_id := strings.GoString(uintptr(unsafe.Pointer(ptr)))
+	vals := unsafe.Slice(valPtr, count)
+	for i := range count {
+		_id := strings.GoString(idPtrs[i])
 		if _id == id {
 			return vals[i]
 		}
@@ -282,12 +279,11 @@ func (c *Core) GetParameterValue(modelPtr uintptr, id string) float32 {
 // Set parameter value
 func (c *Core) SetParameterValue(modelPtr uintptr, id string, value float32) {
 	count := c.csmGetParameterCount(modelPtr)
-	idsPtr := c.csmGetParameterIds(modelPtr)
-	valPtr := c.csmGetParameterValues(modelPtr)
-	for i := 0; i < count; i++ {
-		ptr := *(**byte)(unsafe.Pointer(idsPtr + uintptr(i)*unsafe.Sizeof(uintptr(0))))
-		if strings.GoString(uintptr(unsafe.Pointer(ptr))) == id {
-			*(*float32)(unsafe.Pointer(valPtr + uintptr(i)*unsafe.Sizeof(float32(0)))) = value
+	idPtrs := unsafe.Slice(c.csmGetParameterIds(modelPtr), count)
+	vals := unsafe.Slice(c.csmGetParameterValues(modelPtr), count)
+	for i := range count {
+		if strings.GoString(idPtrs[i]) == id {
+			vals[i] = value
 			return
 		}
 	}
@@ -296,10 +292,9 @@ func (c *Core) SetParameterValue(modelPtr uintptr, id string, value float32) {
 // Get the part IDs
 func (c *Core) GetPartIds(modelPtr uintptr) (ids []string) {
 	count := c.csmGetPartCount(modelPtr)
-	idsPtr := c.csmGetPartIds(modelPtr)
-	for i := 0; i < count; i++ {
-		ptr := *(**byte)(unsafe.Pointer(idsPtr + uintptr(i)*unsafe.Sizeof(uintptr(0))))
-		ids = append(ids, strings.GoString(uintptr(unsafe.Pointer(ptr))))
+	idPtrs := unsafe.Slice(c.csmGetPartIds(modelPtr), count)
+	for i := range count {
+		ids = append(ids, strings.GoString(idPtrs[i]))
 	}
 	return
 }
@@ -307,10 +302,10 @@ func (c *Core) GetPartIds(modelPtr uintptr) (ids []string) {
 // Set the part's opacity
 func (c *Core) SetPartOpacity(modelPtr uintptr, id string, value float32) {
 	ids := c.GetPartIds(modelPtr)
-	ptr := c.csmGetPartOpacities(modelPtr)
+	opacities := unsafe.Slice(c.csmGetPartOpacities(modelPtr), len(ids))
 	for i, _id := range ids {
 		if _id == id {
-			*(*float32)(unsafe.Pointer(ptr + uintptr(i)*unsafe.Sizeof(float32(0)))) = value
+			opacities[i] = value
 			return
 		}
 	}
@@ -323,7 +318,7 @@ func (c *Core) GetSortedDrawableIndices(modelPtr uintptr) (rs []int) {
 	count := c.csmGetDrawableCount(modelPtr)
 	// 描画順を取得する
 	ptr := c.csmGetDrawableRenderOrders(modelPtr)
-	rawIndices := unsafe.Slice((*int32)(unsafe.Pointer(ptr)), count)
+	rawIndices := unsafe.Slice(ptr, count)
 	rs = make([]int, count)
 	for i, order := range rawIndices {
 		rs[order] = i

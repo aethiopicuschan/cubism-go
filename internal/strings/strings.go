@@ -2,8 +2,9 @@ package strings
 
 import "unsafe"
 
-func GoString(p uintptr) string {
-	ptr := *(*unsafe.Pointer)(unsafe.Pointer(&p))
+// GoString copies a NUL-terminated string. p must remain valid until it returns.
+func GoString(p *byte) string {
+	ptr := unsafe.Pointer(p)
 	if ptr == nil {
 		return ""
 	}
