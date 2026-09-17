@@ -3,5 +3,15 @@ pre-commit:
   commands:
     go-lint:
       run: staticcheck ./...
+    go-modernize:
+      run: |
+        pkgs=$(go list ./... | grep -vE '(^|/)(gen)($|/)')
+        modernize -errorsastype=false $pkgs
+    go-mod:
+      run: go mod tidy -diff
+    go-mod-verify:
+      run: go mod verify > /dev/null
+    go-fmt:
+      run: go fmt ./...
     typos:
       run: typos
