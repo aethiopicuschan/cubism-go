@@ -1,20 +1,37 @@
 package renderer
 
 import (
-	_ "embed"
 	"image"
 	"image/color"
 	_ "image/png"
+	"math"
 
 	"github.com/aethiopicuschan/cubism-go"
 	"github.com/aethiopicuschan/cubism-go/renderer/utils"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/colorm"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
-//go:embed  mask.kage
-var maskShaderSrc []byte
+// Ebitengine buffers are premultiplied: mask coverage must scale both RGB
+// and alpha, otherwise clipped pixels still contribute color when composited.
+var (
+	normalMaskBlend = ebiten.Blend{
+		BlendFactorSourceRGB:        ebiten.BlendFactorZero,
+		BlendFactorDestinationRGB:   ebiten.BlendFactorSourceAlpha,
+		BlendOperationRGB:           ebiten.BlendOperationAdd,
+		BlendFactorSourceAlpha:      ebiten.BlendFactorZero,
+		BlendFactorDestinationAlpha: ebiten.BlendFactorSourceAlpha,
+		BlendOperationAlpha:         ebiten.BlendOperationAdd,
+	}
+	invertedMaskBlend = ebiten.Blend{
+		BlendFactorSourceRGB:        ebiten.BlendFactorZero,
+		BlendFactorDestinationRGB:   ebiten.BlendFactorOneMinusSourceAlpha,
+		BlendOperationRGB:           ebiten.BlendOperationAdd,
+		BlendFactorSourceAlpha:      ebiten.BlendFactorZero,
+		BlendFactorDestinationAlpha: ebiten.BlendFactorOneMinusSourceAlpha,
+		BlendOperationAlpha:         ebiten.BlendOperationAdd,
+	}
+)
 
 type Renderer struct {
 	fb, mb, surface *ebiten.Image
@@ -22,15 +39,48 @@ type Renderer struct {
 	model           *cubism.Model
 	drawables       []cubism.Drawable
 	vertices        [][]ebiten.Vertex
-	maskShader      *ebiten.Shader
 	final           image.Rectangle
 }
 
+// Options for constructing a [Renderer]
+type RendererOption struct {
+	maxResolution int
+}
+
+// Cap the largest dimension of the internal offscreen buffers (fb/mb/surface)
+// to at most max pixels, downscaling proportionally if the model's native
+// canvas size (as reported by the Cubism core) is larger. This has no effect
+// on visual correctness (the model is still rendered at the requested output
+// size via the final scale in [Renderer.Draw]), but some models report a
+// canvas size far larger than any reasonable display resolution (e.g. Mao's
+// 5800x8400), which would otherwise force every offscreen fill/blend/clear
+// operation to run at that native, needlessly huge resolution every frame.
+// Pass 0 to disable capping and always use the model's native canvas size.
+func WithMaxResolution(max int) func(*RendererOption) {
+	return func(o *RendererOption) {
+		o.maxResolution = max
+	}
+}
+
 // Constructor for the [Renderer] struct
-func NewRenderer(model *cubism.Model) (r *Renderer, err error) {
+func NewRenderer(model *cubism.Model, opts ...func(*RendererOption)) (r *Renderer, err error) {
+	opt := &RendererOption{
+		maxResolution: 2048,
+	}
+	for _, o := range opts {
+		o(opt)
+	}
 	modelPtr := model.GetMoc().ModelPtr
 	core := model.GetCore()
 	size, _, _ := core.GetCanvasInfo(modelPtr)
+	width, height := size.X, size.Y
+	if opt.maxResolution > 0 {
+		if largest := float32(math.Max(float64(width), float64(height))); largest > float32(opt.maxResolution) {
+			scale := float32(opt.maxResolution) / largest
+			width *= scale
+			height *= scale
+		}
+	}
 	m := make(map[string]*ebiten.Image)
 	ts := model.GetTextures()
 	for _, t := range ts {
@@ -40,17 +90,12 @@ func NewRenderer(model *cubism.Model) (r *Renderer, err error) {
 		}
 		m[t] = img
 	}
-	shader, err := ebiten.NewShader(maskShaderSrc)
-	if err != nil {
-		return
-	}
 	r = &Renderer{
-		fb:         ebiten.NewImage(int(size.X), int(size.Y)),
-		mb:         ebiten.NewImage(int(size.X), int(size.Y)),
-		surface:    ebiten.NewImage(int(size.X), int(size.Y)),
+		fb:         ebiten.NewImage(int(width), int(height)),
+		mb:         ebiten.NewImage(int(width), int(height)),
+		surface:    ebiten.NewImage(int(width), int(height)),
 		textureMap: m,
 		model:      model,
-		maskShader: shader,
 	}
 	return
 }
@@ -154,6 +199,27 @@ func (r *Renderer) Draw(screen *ebiten.Image, opts ...func(*DrawOption)) {
 
 	r.surface.Fill(opt.background)
 	sortedIndices := r.model.GetSortedIndices()
+
+	// Consecutive non-masked, visible drawables that share the same texture
+	// are batched into a single DrawTriangles call. Each individual draw call
+	// carries substantial fixed overhead (command encoding, driver bridging),
+	// so submitting ~225 tiny draw calls per frame (one per part) is far more
+	// expensive than a handful of larger batched ones. Masked drawables can't
+	// join a batch since they require their own clip/composite step, so a
+	// pending batch is flushed whenever one is encountered.
+	var batchVertices []ebiten.Vertex
+	var batchIndices []uint16
+	var batchTexture *ebiten.Image
+	flushBatch := func() {
+		if len(batchIndices) == 0 {
+			return
+		}
+		r.surface.DrawTriangles(batchVertices, batchIndices, batchTexture, &ebiten.DrawTrianglesOptions{})
+		batchVertices = batchVertices[:0]
+		batchIndices = batchIndices[:0]
+		batchTexture = nil
+	}
+
 	for _, index := range sortedIndices {
 		d := r.drawables[index]
 		if !d.DynamicFlag.IsVisible {
@@ -161,46 +227,118 @@ func (r *Renderer) Draw(screen *ebiten.Image, opts ...func(*DrawOption)) {
 		}
 		vertices := r.vertices[index]
 		if len(d.Masks) > 0 {
-			r.fb.Fill(color.RGBA{0, 0, 0, 0})
-			r.mb.Fill(color.RGBA{0, 0, 0, 0})
-			changed := false
+			flushBatch()
+			// Only the area actually touched by this drawable and its masks needs
+			// to be cleared/composited. Operating on the full canvas here is very
+			// expensive for models with large canvases (e.g. Mao's 5800x8400),
+			// since it turns every masked part into a full-buffer clear + shader
+			// pass regardless of how small the part actually is on screen.
+			bounds := verticesBounds(vertices)
+			for _, maskIndex := range d.Masks {
+				bounds = bounds.Union(verticesBounds(r.vertices[maskIndex]))
+			}
+			bounds = bounds.Intersect(r.fb.Bounds())
+			if bounds.Empty() {
+				continue
+			}
+			subFb := r.fb.SubImage(bounds).(*ebiten.Image)
+			subMb := r.mb.SubImage(bounds).(*ebiten.Image)
+			subFb.Clear()
+			subMb.Clear()
+			// Every mask assigned to this drawable must be redrawn every
+			// frame it is visible, regardless of whether that particular
+			// mask's own vertex positions happen to have changed since the
+			// last frame: mb is fully cleared above, so skipping a mask here
+			// would leave its contribution missing from the union entirely
+			// (not just "stale"). This previously caused e.g. eyelids (whose
+			// own clip mask is mostly static) to intermittently fail to
+			// render while blinking, letting the eyes poke through them.
 			for _, maskIndex := range d.Masks {
 				mask := r.drawables[maskIndex]
-				if !mask.DynamicFlag.VertexPositionsDidChange {
-					continue
-				}
-				maskOptions := &colorm.DrawTrianglesOptions{}
-				maskColorM := colorm.ColorM{}
-				maskColorM.Scale(0, 0, 0, 1)
-				maskOptions.AntiAlias = true
-				colorm.DrawTriangles(r.mb, r.vertices[maskIndex], mask.VertexIndices, r.textureMap[mask.Texture], maskColorM, maskOptions)
-				changed = true
+				maskOptions := &ebiten.DrawTrianglesOptions{}
+				r.mb.DrawTriangles(r.vertices[maskIndex], mask.VertexIndices, r.textureMap[mask.Texture], maskOptions)
 			}
-			if changed {
-				r.fb.DrawTriangles(vertices, d.VertexIndices, r.textureMap[d.Texture], &ebiten.DrawTrianglesOptions{})
-				options := &ebiten.DrawRectShaderOptions{}
-				options.Images[0] = r.mb
-				options.Images[1] = r.fb
-				inverted := float32(0)
-				if d.ConstantFlag.IsInvertedMask {
-					inverted = 1
-				}
-				options.Uniforms = map[string]interface{}{
-					"Inverted": inverted,
-				}
-				r.surface.DrawRectShader(r.fb.Bounds().Dx(), r.fb.Bounds().Dy(), r.maskShader, options)
-			}
+			r.fb.DrawTriangles(opacityVertices(vertices, d.Opacity), d.VertexIndices, r.textureMap[d.Texture], &ebiten.DrawTrianglesOptions{})
+			r.compositeMask(bounds, d.ConstantFlag.IsInvertedMask)
 		} else {
-			colorM := colorm.ColorM{}
-			colorM.Scale(1, 1, 1, float64(d.Opacity))
-			options := &colorm.DrawTrianglesOptions{}
-			options.AntiAlias = true
-			colorm.DrawTriangles(r.surface, vertices, d.VertexIndices, r.textureMap[d.Texture], colorM, options)
+			texture := r.textureMap[d.Texture]
+			if batchTexture != texture {
+				flushBatch()
+				batchTexture = texture
+			}
+			// uint16 indices can only address up to 65536 vertices per draw
+			// call; flush and start a new batch before that would overflow.
+			if len(batchVertices)+len(vertices) > 65536 {
+				flushBatch()
+				batchTexture = texture
+			}
+			base := uint16(len(batchVertices))
+			batchVertices = append(batchVertices, opacityVertices(vertices, d.Opacity)...)
+			for _, idx := range d.VertexIndices {
+				batchIndices = append(batchIndices, base+idx)
+			}
 		}
 	}
+	flushBatch()
 
 	// Draw
 	screen.DrawImage(r.surface, last_options)
+}
+
+func (r *Renderer) compositeMask(bounds image.Rectangle, inverted bool) {
+	subFb := r.fb.SubImage(bounds).(*ebiten.Image)
+	subMb := r.mb.SubImage(bounds).(*ebiten.Image)
+	options := &ebiten.DrawImageOptions{Blend: normalMaskBlend}
+	if inverted {
+		options.Blend = invertedMaskBlend
+	}
+	// DrawImage rebases its source to (0, 0), but destination subimages
+	// retain their original coordinates.
+	options.GeoM.Translate(float64(bounds.Min.X), float64(bounds.Min.Y))
+	subFb.DrawImage(subMb, options)
+	blitOptions := &ebiten.DrawImageOptions{}
+	blitOptions.GeoM.Translate(float64(bounds.Min.X), float64(bounds.Min.Y))
+	r.surface.DrawImage(subFb, blitOptions)
+}
+
+// Apply an opacity value to a copy of vertices' alpha channel. Vertices with
+// opacity 1 (the common case) are returned unmodified to avoid needless
+// allocation/copies.
+func opacityVertices(vertices []ebiten.Vertex, opacity float32) []ebiten.Vertex {
+	if opacity == 1 {
+		return vertices
+	}
+	out := make([]ebiten.Vertex, len(vertices))
+	for i, v := range vertices {
+		v.ColorA *= opacity
+		out[i] = v
+	}
+	return out
+}
+
+// Compute the destination-space bounding rectangle of a set of vertices,
+// used to limit mask buffer clears/composites to the area actually in use.
+func verticesBounds(vertices []ebiten.Vertex) image.Rectangle {
+	if len(vertices) == 0 {
+		return image.Rectangle{}
+	}
+	minX, minY := vertices[0].DstX, vertices[0].DstY
+	maxX, maxY := vertices[0].DstX, vertices[0].DstY
+	for _, v := range vertices[1:] {
+		if v.DstX < minX {
+			minX = v.DstX
+		}
+		if v.DstX > maxX {
+			maxX = v.DstX
+		}
+		if v.DstY < minY {
+			minY = v.DstY
+		}
+		if v.DstY > maxY {
+			maxY = v.DstY
+		}
+	}
+	return image.Rect(int(math.Floor(float64(minX))), int(math.Floor(float64(minY))), int(math.Ceil(float64(maxX)))+1, int(math.Ceil(float64(maxY)))+1)
 }
 
 // Get the model set in the renderer
